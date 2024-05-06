@@ -31,7 +31,14 @@
 
   <!-- Use libpointmatcher for ICP? (has effect only when hector:=false) -->
   <arg name="pm" default="true" />
+  
+   <!-- Initialize camera node -->
+  <arg name="align_depth"       default="true"/>
 
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+    <arg name="align_depth" value="$(arg align_depth)"/>
+  </include>
+  
   <param name="use_sim_time" type="bool" value="True"/>
 
   <node if="$(arg hector)" pkg="tf" type="static_transform_publisher" name="scanmatcher_to_base_footprint"

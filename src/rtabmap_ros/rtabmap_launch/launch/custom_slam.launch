@@ -1,14 +1,25 @@
 <launch>
+  <!-- Define arguments -->
+  <arg name="align_depth"       default="true"/>
 
+  <arg name="rtabmap_args"      default="--delete_db_on_start"/>
+  <arg name="depth_topic"       default="/camera/aligned_depth_to_color/image_raw"/>
+  <arg name="rgb_topic"         default="/camera/color/image_raw"/>
+  <arg name="camera_info_topic" default="/camera/color/camera_info"/>
+  <arg name="approx_sync"       default="false"/>
+
+  <!-- Initialize camera node -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+    <arg name="align_depth" value="$(arg align_depth)"/>
+  </include>
+
+  <!-- Initialize RTABMAP -->
   <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
-    <arg name="args" value="--delete_db_on_start"/>
-    <arg name="subscribe_scan" value="false"/>
-    <arg name="scan_topic" value="/scan"/>
-    <arg name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
-    <arg name="rgb_topic" value="/camera/color/image_raw"/>
-    <arg name="camera_info_topic" value="/camera/color/camera_info"/>
-    <arg name="rgbd_sync" value="true"/>
-    <arg name="approx_rgbd_sync" value="false"/>
+      <arg name="rtabmap_args"      value="$(arg rtabmap_args)"/>
+      <arg name="depth_topic"       value="$(arg depth_topic)"/>
+      <arg name="rgb_topic"         value="$(arg rgb_topic)"/>
+      <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+      <arg name="approx_sync"       value="$(arg approx_sync)"/>  
   </include>
 
 </launch>
