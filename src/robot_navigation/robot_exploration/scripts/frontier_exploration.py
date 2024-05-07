@@ -2,6 +2,7 @@
 # TODO: if there is time at the end, benchmark against C++
 
 import rospy
+import math
 import numpy as np
 from matplotlib import pyplot as plt
 from nav_msgs.msg import OccupancyGrid
@@ -12,13 +13,17 @@ UNKNOWN_TOKEN = -1
 OBSTACLE_TOKEN = 100
 CELL_PERIMETER = 4 # the actual permiter is 2 times this 
 DEBUG = False
+# Normalization constants
+MAX_DISTANCE, MAX_COUNT = 3, 64 #Distance is in meters
+# Constants for weighing score
+P, A, G = (0.33,0.33,0.33)
 
 class FrontierExplorer():
     def __init__(self):
         self.slam_namespace = "rtabmap"
         # Init nodes and define pubs and subs
         rospy.init_node('frontier_explorer', anonymous=True)
-        self.rate = rospy.Rate(100)
+        self.rate = rospy.Rate(1)
         rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
         self.frontier_pub = rospy.Publisher('/frontier', PoseStamped, queue_size=2)
@@ -29,16 +34,41 @@ class FrontierExplorer():
     def gridmap_callback(self, map: OccupancyGrid):
          self.grid_map = map # (0-100) meaning probability that there is obstacle, -1 if unknown
 
-    def pose_callback(self, pose):
+    def pose_callback(self, pose: PoseWithCovarianceStamped):
         self.robot_position = pose
 
-    def calculate_obstacle_density(self, cell, grid):
+    def calculate_obstacle_density(self, cell, grid, norm = True):
         row, col = cell[0], cell[1]
         surrounding_cells = grid[row-CELL_PERIMETER:row+CELL_PERIMETER, col-CELL_PERIMETER:col+CELL_PERIMETER]
-        score = np.sum(surrounding_cells)
-        score = score/100
+        obstacle_mask = surrounding_cells >= OBSTACLE_TOKEN
+        obstacle_cells = surrounding_cells[obstacle_mask]
+        score = len(obstacle_cells)
+        if norm: score = score/MAX_COUNT
         return score
 
+    def calculate_unknown_density(self, cell, grid, norm = True):
+        row, col = cell[0], cell[1]
+        surrounding_cells = grid[row-CELL_PERIMETER:row+CELL_PERIMETER, col-CELL_PERIMETER:col+CELL_PERIMETER]
+        unknow_mask = surrounding_cells == UNKNOWN_TOKEN
+        unknown_cells = surrounding_cells[unknow_mask]
+        score = len(unknown_cells)
+        if norm: score = score/MAX_COUNT
+        return score 
+
+    def get_cell_distance(self, cell, norm = True):
+        if self.robot_position is None:
+            return 0
+        
+        cell_x = cell[1] * self.grid_map.info.resolution + self.grid_map.info.origin.position.x
+        cell_y = cell[0] * self.grid_map.info.resolution + self.grid_map.info.origin.position.y
+
+        robot_x = self.robot_position.pose.pose.position.x
+        robot_y = self.robot_position.pose.pose.position.y
+
+        distance = (cell_x - robot_x)**2 + (cell_y - robot_y)**2
+        distance = math.sqrt(distance)
+        if norm: distance = distance/MAX_DISTANCE
+        return distance
 
     def identify_frontiers(self):
         # Cast grid_map into numpy array for efficient processing
@@ -62,12 +92,14 @@ class FrontierExplorer():
         
         scores = []
         for cell in frontiers:
-            # Naive assement, assign more points to further away frontiers to maximize coverage. #TODO: calculate distance from robot
-            distance = np.sqrt((cell[0] - 0)**2 + (cell[1] - 0)**2)
+            # Naive assement, assign more points to closer frontiers.
+            distance = self.get_cell_distance(cell)
+            #Favor node that are near to alot of unknown cells
+            unknown_density = self.calculate_unknown_density(cell, grid)
             # Penalize if the frontier is covered by obstacles. TODO: perform rechability analysis
             obstacle_density = self.calculate_obstacle_density(cell, grid)
             # Combine the distance and obstacle density factors into a score
-            score = distance - obstacle_density
+            score = P*unknown_density - A*obstacle_density - G*distance
             scores.append(score)
         return scores
 
@@ -94,7 +126,7 @@ class FrontierExplorer():
 
     def explore(self):
         while not rospy.is_shutdown():
-            if self.grid_map is not None:
+            if self.grid_map is not None and self.robot_position is not None:
                 frontier_cells, np_grid = self.identify_frontiers()
                 scores = self.evaluate_frontiers(frontier_cells, np_grid)
                 goal = self.select_goal(frontier_cells, scores)

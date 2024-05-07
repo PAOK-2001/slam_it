@@ -166,6 +166,7 @@ include_directories(
 
 catkin_install_python(PROGRAMS
   scripts/frontier_exploration.py
+  scripts/a_star.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
