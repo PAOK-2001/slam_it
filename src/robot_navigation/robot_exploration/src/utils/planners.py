@@ -20,7 +20,7 @@ def astar(map, start, goal):
     frontier = []
 
     heapq.heappush(frontier, (fscore[start], start))
- 
+    
     while frontier:
         current = heapq.heappop(frontier)[1]
 
@@ -39,7 +39,7 @@ def astar(map, start, goal):
             tentative_g_score = gscore[current] + heuristic(current, neighbor)
             if 0 <= neighbor[0] < map.shape[0]:
                 if 0 <= neighbor[1] < map.shape[1]:                
-                    if map[neighbor[0]][neighbor[1]] == OBSTACLE_TOKEN or map[neighbor[0]][neighbor[1]] == UNKNOWN_TOKEN:
+                    if map[neighbor[0]][neighbor[1]] == OBSTACLE_TOKEN:
                         continue
                 else:
                     # map bound y walls

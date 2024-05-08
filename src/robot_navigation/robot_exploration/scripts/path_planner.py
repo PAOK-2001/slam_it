@@ -2,19 +2,22 @@ import math
 import rospy 
 import numpy as np
 from nav_msgs.msg import OccupancyGrid, Path
-from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped, PoseStamped
+import matplotlib.pyplot as plt
 from utils.planners import astar
+
 class PathPlanner():
     def __init__(self):
         self.slam_namespace = "rtabmap"
         # Init nodes and define pubs and subs
         rospy.init_node('path_planner', anonymous=True)
-        self.rate = rospy.Rate(100)
+        self.rate = rospy.Rate(1)
         rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
+        rospy.Subscriber("/frontier", PointStamped, self.goal_callback)
         rospy.Subscriber(f"/goal", PointStamped, self.goal_callback)
         self.path_pub = rospy.Publisher('/path', Path, queue_size=2)
-
+        self.path = None
         self. goal = None
         self.grid_map = None
         self.np_grid = None
@@ -32,7 +35,8 @@ class PathPlanner():
         self.robot_position = pose
 
     def goal_callback(self, new_goal):
-        if new_goal != self.goal: self.path_found = False  # Toggle path finding
+        if self.goal is not None:
+            if new_goal.point != self.goal.point: self.path_found = False  # Toggle path finding
         self.goal = new_goal
 
     def get_cell_from_pose(self, pose_x, pose_y):
@@ -40,15 +44,24 @@ class PathPlanner():
         grid_resolution = self.grid_map.info.resolution
         grid_x = int((pose_x - grid_origin_x) / grid_resolution)
         grid_y = int((pose_y - grid_origin_y) / grid_resolution)
-        return [grid_y, grid_x]
+        return (grid_y, grid_x)
     
     def get_pose_from_cell(self, cell):
         cell_x = cell[1] * self.grid_map.info.resolution + self.grid_map.info.origin.position.x
         cell_y = cell[0] * self.grid_map.info.resolution + self.grid_map.info.origin.position.y
         return (cell_x, cell_y)
 
-    def build_path(path):
-        raise NotImplemented
+    def build_path(self, route):
+        path = Path()
+        path.header.frame_id = self.goal.header.frame_id
+        for i in (range(0,len(route))):
+            curr_pose = PoseStamped()
+            curr_pose.header.frame_id = self.goal.header.frame_id 
+            x, y = self.get_pose_from_cell(route[i])
+            curr_pose.pose.position.x = x
+            curr_pose.pose.position.y = y
+            path.poses.append(curr_pose)
+        return path
     
     def plan(self):
         while not rospy.is_shutdown():
@@ -60,17 +73,20 @@ class PathPlanner():
                 goal_cell = self.get_cell_from_pose(pose_x= self.goal.point.x, 
                                                     pose_y=self.goal.point.y)
                 
-                try:
-                    path = astar(map= self.np_grid, start= start_cell, goal=goal_cell)
-                except:
-                    rospy.loginfo(f"Error executing A-Star")
-
+                
+                rospy.loginfo(f"Searching for path...")
+                path = astar(map= self.np_grid, start= start_cell, goal=goal_cell)
+            
                 if(path is not None):
                     rospy.loginfo(f"Found path")
                     self.path_found = True
+                    self.path = self.build_path(path)
+                    self.path_pub.publish(self.path)
+
             else:
-                
-                pass
+                if self.path is not None:
+                    self.path_pub.publish(self.path)
+        
             self.rate.sleep()
 
 if __name__ == "__main__":

@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="align_depth"       default="true"/>
+  <arg name="subscribe_scan"    default="true"/>
+  <arg name="rtabmap_args"      default="--delete_db_on_start"/>
+  <arg name="depth_topic"       default="/camera/aligned_depth_to_color/image_raw"/>
+  <arg name="rgb_topic"         default="/camera/color/image_raw"/>
+  <arg name="camera_info_topic" default="/camera/color/camera_info"/>
+  <arg name="approx_sync"       default="false"/>
+  <!-- Camera node launch -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+    <arg name="align_depth" value="true"/>
+  </include>
+
+  <!-- Lidar node launch -->
+  <include file="$(find rplidar_ros)/launch/rplidar_a1.launch"/>
+
+    <!-- RTAB-Map nodes -->
+  <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
+      <arg name="subscribe_scan"    value="$(arg subscribe_scan)"/>
+      <arg name="rtabmap_args"      value="$(arg rtabmap_args)"/>
+      <arg name="depth_topic"       value="$(arg depth_topic)"/>
+      <arg name="rgb_topic"         value="$(arg rgb_topic)"/>
+      <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+      <arg name="approx_sync"       value="$(arg approx_sync)"/>
+      </include>
+</launch>
+
+  <!-- Hector mapping launch -->
+  <!-- <node pkg="tf" type="static_transform_publisher" name="scanmatcher_to_base_footprint"
+    args="0.0 0.0 0.0 0.0 0.0 0.0 /scanmatcher_frame /base_footprint 100" />
+
+  <!-- Odometry from laser scans -->
+  <node pkg="hector_mapping" type="hector_mapping" name="hector_mapping" output="screen">
+
+    <!-- Frame names -->
+    <param name="map_frame" value="hector_map" />
+    <param name="base_frame" value="base_footprint" />
+    <param name="odom_frame" value="odom" />
+
+    <!-- Tf use -->
+    <param name="pub_map_odom_transform" value="false"/>
+    <param name="pub_map_scanmatch_transform" value="true"/>
+    <param name="pub_odometry" value="true"/>
+
+    <!-- Map size / start point -->
+    <param name="map_resolution" value="0.050"/>
+    <param name="map_size" value="2048"/>
+    <param name="map_multi_res_levels" value="2" />
+
+    <!-- Map update parameters -->
+    <param name="map_update_angle_thresh" value="0.06" />
+
+    <!-- Advertising config -->
+    <param name="scan_topic" value="/scan"/>
+  </node> -->
+
+

@@ -123,9 +123,9 @@
       <remap from="scan" to="/jn0/base_scan"/>
 
       <!-- As hector doesn't provide compatible covariance in the odometry topic, don't use the topic and fix the covariance -->
-      <param if="$(arg hector)" name="odom_frame_id"            type="string" value="hector_map"/>
-      <param if="$(arg hector)" name="odom_tf_linear_variance"  type="double" value="0.0005"/>
-      <param if="$(arg hector)" name="odom_tf_angular_variance" type="double" value="0.0005"/>
+      <param  name="odom_frame_id"            type="string" value="hector_map"/>
+      <param  name="odom_tf_linear_variance"  type="double" value="0.0005"/>
+      <param  name="odom_tf_angular_variance" type="double" value="0.0005"/>
 
       <remap unless="$(arg hector)" from="odom" to="/scanmatch_odom"/>
       <param unless="$(arg hector)" name="subscribe_odom_info" type="bool" value="true"/>
