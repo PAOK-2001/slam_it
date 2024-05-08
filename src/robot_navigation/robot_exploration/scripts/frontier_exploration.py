@@ -6,9 +6,17 @@ import math
 import numpy as np
 from matplotlib import pyplot as plt
 from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from utils.common import *
+from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped
 
+# Constants
+UNKNOWN_TOKEN = -1
+OBSTACLE_TOKEN = 100
+CELL_PERIMETER = 4 # the actual permiter is 2 times this 
+
+# Normalization constants
+MAX_DISTANCE, MAX_COUNT = 3, 64 #Distance is in meters
+# Constants for weighing score
+P, A, G = (0.33,0.33,0.33)
 DEBUG = False
 
 class FrontierExplorer():
@@ -19,7 +27,7 @@ class FrontierExplorer():
         self.rate = rospy.Rate(1)
         rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
-        self.frontier_pub = rospy.Publisher('/frontier', PoseStamped, queue_size=2)
+        self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
         # Variables
         self.grid_map = None
         self.robot_position = None
@@ -100,12 +108,11 @@ class FrontierExplorer():
         best_index = np.argmax(scores)
         goal_cell = frontier_cells[best_index]
 
-        goal_pose = PoseStamped()
+        goal_pose = PointStamped()
+        
         goal_pose.header.frame_id = self.grid_map.header.frame_id
-
-        goal_pose.pose.position.x = goal_cell[1] * self.grid_map.info.resolution + self.grid_map.info.origin.position.x
-        goal_pose.pose.position.y = goal_cell[0] * self.grid_map.info.resolution + self.grid_map.info.origin.position.y
-        goal_pose.pose.orientation.w = 1.0
+        goal_pose.point.x = goal_cell[1] * self.grid_map.info.resolution + self.grid_map.info.origin.position.x
+        goal_pose.point.y = goal_cell[0] * self.grid_map.info.resolution + self.grid_map.info.origin.position.y
 
         return goal_pose
     

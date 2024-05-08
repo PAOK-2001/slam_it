@@ -3,6 +3,7 @@ import heapq
 import numpy as np
 import matplotlib.pyplot as plt
 from common import *
+
 def heuristic(point_a, point_b):
     (x1, y1) = point_a[0], point_a[1]
     (x2, y2) = point_b[0], point_b[1]

@@ -1,9 +1,8 @@
 import math
-import heapq
 import rospy 
 import numpy as np
 from nav_msgs.msg import OccupancyGrid, Path
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped
 from utils.planners import a_star
 
 class PathPlanner():
@@ -14,7 +13,7 @@ class PathPlanner():
         self.rate = rospy.Rate(100)
         rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
-        rospy.Subscriber(f"/goal", PoseStamped, self.goal_callback)
+        rospy.Subscriber(f"/goal", PointStamped, self.goal_callback)
         self.path_pub = rospy.Publisher('/path', Path, queue_size=2)
 
         self. goal = None
@@ -33,8 +32,9 @@ class PathPlanner():
     def pose_callback(self, pose: PoseWithCovarianceStamped):
         self.robot_position = pose
 
-    def goal_callback(self, goal):
-        self.goal = goal
+    def goal_callback(self, new_goal):
+        if new_goal != self.goal: self.path_found = False  # Toggle path finding
+        self.goal = new_goal
 
     def get_cell_from_pose(self, pose_x, pose_y):
         grid_origin_x, grid_origin_y = (self.grid_map.info.origin.position.x, self.grid_map.info.origin.position.y)
@@ -59,14 +59,12 @@ class PathPlanner():
                     neighbors.append((x + dx, y + dy))
         return neighbors
     
-    def euclidean_distance(self, point1, point2):
-        return np.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
-    
     def plan(self):
         while not rospy.is_shutdown():
             if(not self.path_found):
                 pass
             else:
+                
                 pass
             self.rate.sleep()
 
