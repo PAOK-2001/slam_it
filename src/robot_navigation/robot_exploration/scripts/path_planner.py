@@ -3,8 +3,7 @@ import rospy
 import numpy as np
 from nav_msgs.msg import OccupancyGrid, Path
 from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped
-from utils.planners import a_star
-
+from utils.planners import astar
 class PathPlanner():
     def __init__(self):
         self.slam_namespace = "rtabmap"
@@ -53,8 +52,22 @@ class PathPlanner():
     
     def plan(self):
         while not rospy.is_shutdown():
-            if(not self.path_found):
-                pass
+            if(not self.path_found and self.robot_position is not None and self.grid_map is not None and self.goal is not None):
+                path = None
+                start_cell = self.get_cell_from_pose(pose_x= self.robot_position.pose.pose.position.x, 
+                                                     pose_y= self.robot_position.pose.pose.position.y)
+                
+                goal_cell = self.get_cell_from_pose(pose_x= self.goal.point.x, 
+                                                    pose_y=self.goal.point.y)
+                
+                try:
+                    path = astar(map= self.np_grid, start= start_cell, goal=goal_cell)
+                except:
+                    rospy.loginfo(f"Error executing A-Star")
+
+                if(path is not None):
+                    rospy.loginfo(f"Found path")
+                    self.path_found = True
             else:
                 
                 pass

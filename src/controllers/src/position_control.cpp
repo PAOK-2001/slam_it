@@ -1,37 +1,27 @@
 #include <ros/ros.h>
 #include <ros/console.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Path.h>
 #include <std_msgs/Float32.h>
-#include <std_msgs/String.h>
+#include <tf/transform_datatypes.h>
 #include <cmath>
 #include <chrono>
-#include <string>
-#include <map>
 
 using namespace std;
 
 int nodeRate = 100;
 nav_msgs::Path path;
+geometry_msgs::PoseWithCovarianceStamped position;
 float right_speed , left_speed;
 bool isReceiving = false;
-
 
 void receive_path(const nav_msgs::Path &received_path){
     path = received_path;
 }
 
-
-
-void receive_right_speed(const std_msgs::Float32 &received_speed){
-    right_speed = received_speed.data;
-    isReceiving = true;
-}
-
-void receive_left_speed(const std_msgs::Float32 &received_speed){
-    left_speed = received_speed.data;
-    isReceiving = true;
+void receive_position(const geometry_msgs::PoseWithCovarianceStamped &received_pose){
+    position = received_pose; 
 }
 
 int main(int argc, char *argv[]) {
@@ -40,11 +30,9 @@ int main(int argc, char *argv[]) {
     bool hasFinished = false;
     
     ros::Subscriber systemFeedback = handler.subscribe("/path", 10, receive_path);
-    ros::Subscriber wl = handler.subscribe("/wl", 10, receive_right_speed);
-    ros::Subscriber wr = handler.subscribe("/wr", 10, receive_left_speed);
+    ros::Subscriber positionSub = handler.subscribe("/rtabmap/localization_pose", 10, receive_position);
 
     ros::Publisher controllerOutput = handler.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
-    ros::Publisher estimated_pose = handler.advertise<geometry_msgs::PoseStamped>("/estimated_pose", 10);
 
     float kpr, kit, kpt, wheelbase, wheel_radius;
     ros::param::get("/rotational_constant", kpr);
@@ -55,11 +43,11 @@ int main(int argc, char *argv[]) {
     ros::param::get("/wheel_radius", wheel_radius);
     ros::Rate rate(nodeRate);
     geometry_msgs::Twist output;
-    geometry_msgs::PoseStamped puzzlePose;
-    float dt = 0;
+    //float dt = 0;
     float robot_x = 0;
     float robot_y = 0;
     float robot_orientation = 0;
+    double roll = 0, pitch = 0, yaw = 0;
 
     float w_max = 8;
     float v_max = (w_max*wheel_radius)*0.5;
@@ -71,6 +59,12 @@ int main(int argc, char *argv[]) {
     while(ros::ok){
         if(!hasFinished){
             for (auto coord : path.poses){
+                robot_x = position.pose.pose.position.x;
+                robot_y = position.pose.pose.position.y;
+                tf::Quaternion quat;
+                tf::quaternionMsgToTF(position.pose.pose.orientation, quat);
+                tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+                robot_orientation = yaw;
                 float desired_x = coord.pose.position.x;
                 float desired_y = coord.pose.position.y;
                 float desired_angle;
@@ -91,12 +85,11 @@ int main(int argc, char *argv[]) {
                     if(angle_error > M_PI) angle_error = angle_error - 2*M_PI;
                     else if(angle_error < - M_PI)angle_error = angle_error + 2*M_PI;
                     
-                    float angularVelocity = kpr*angle_error*traffic_light_multiplier;
+                    float angularVelocity = kpr*angle_error;
                     if(angularVelocity > angularV_max) angularVelocity = angularV_max;
                     else if (angularVelocity < -angularV_max) angularVelocity = -angularV_max;
                     
-
-                    float velocity = (kpt*distance + kit*integral_trr)*traffic_light_multiplier; 
+                    float velocity = kpt*distance + kit*integral_trr; 
                     velocity = v_max * tanh(velocity);
                     integral_trr+=distance;
             
@@ -108,27 +101,8 @@ int main(int argc, char *argv[]) {
                     output.angular.y = 0;
                     output.angular.z = angularVelocity;
 
-                    dt = (chrono::duration_cast<chrono::microseconds> (chrono::steady_clock::now() - t).count())/1000000.0;
-                               
-                    float real_linear_velocity =  ((right_speed + left_speed)/2) * wheel_radius;
-                    float real_angular_velocity =  (right_speed - left_speed)/wheelbase*wheel_radius;
-
-                    //cout << real_linear_velocity << " " << real_angular_velocity << endl;
-
-                    robot_orientation += real_angular_velocity*dt;
-                    
-                    if(robot_orientation < 0) robot_orientation = robot_orientation + 2*M_PI;
-
-                    robot_x += real_linear_velocity*dt*cos(robot_orientation);
-                    robot_y -= real_linear_velocity*dt*sin(robot_orientation);
-
-                    puzzlePose.pose.position.x = robot_x;
-                    puzzlePose.pose.position.y = robot_y;
-                    puzzlePose.pose.orientation.z = robot_orientation;
-
-                    old_last_color = last_color;
                     controllerOutput.publish(output);
-                    estimated_pose.publish(puzzlePose);
+
                     ros::spinOnce();
                     
                 }
