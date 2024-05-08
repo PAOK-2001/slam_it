@@ -48,16 +48,8 @@ class PathPlanner():
         cell_y = cell[0] * self.grid_map.info.resolution + self.grid_map.info.origin.position.y
         return (cell_x, cell_y)
 
-    def get_neighbors(self, cell):
-        x, y = cell[0], cell[1]
-        neighbors = []
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx == 0 and dy == 0:
-                    continue
-                if 0 <= x + dx < len(self.map) and 0 <= y + dy < len(self.map[0]) and self.map[x + dx][y + dy] == 0:
-                    neighbors.append((x + dx, y + dy))
-        return neighbors
+    def build_path(path):
+        raise NotImplemented
     
     def plan(self):
         while not rospy.is_shutdown():
