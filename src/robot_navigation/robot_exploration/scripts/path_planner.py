@@ -4,7 +4,7 @@ import rospy
 import numpy as np
 from nav_msgs.msg import OccupancyGrid, Path
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from utils.planners import Planners
+from utils.planners import a_star
 
 class PathPlanner():
     def __init__(self):
