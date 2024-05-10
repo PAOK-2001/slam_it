@@ -17,14 +17,14 @@
   <!-- Initialize RTABMAP -->
   <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
       <arg name="rtabmap_args"      value="$(arg rtabmap_args)"/>
-
-      <arg name="subscribe_scan" value="true"/>
-      <arg name="scan_topic" value="/scan"/>
-      <arg name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
-      <arg name="rgb_topic" value="/camera/color/image_raw"/>
+      <arg name="rtabmap_viz"       value="false"/>
+      <arg name="subscribe_scan"    value="true"/>
+      <arg name="scan_topic"        value="/scan"/>
+      <arg name="depth_topic"       value="/camera/aligned_depth_to_color/image_raw"/>
+      <arg name="rgb_topic"         value="/camera/color/image_raw"/>
       <arg name="camera_info_topic" value="/camera/color/camera_info"/>
-      <arg name="rgbd_sync" value="true"/>
-      <arg name="approx_rgbd_sync" value="false"/>
+      <arg name="rgbd_sync"         value="true"/>
+      <arg name="approx_rgbd_sync"  value="false"/>
 
   </include>
 
