@@ -459,7 +459,7 @@
   </group>
 
   <!-- Visualization RVIZ -->
-  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_cfg)"/>
+  <!-- <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_cfg)"/> -->
   <node if="$(arg rviz)" pkg="nodelet" type="nodelet" name="points_xyzrgb" args="standalone rtabmap_util/point_cloud_xyzrgb" clear_params="$(arg clear_params)" output="$(arg output)">
     <remap if="$(arg stereo)" from="left/image"        to="$(arg left_image_topic_relay)"/>
     <remap if="$(arg stereo)" from="right/image"       to="$(arg right_image_topic_relay)"/>
