@@ -1,0 +1,6 @@
+<launch>
+    <rosparam file = "$(find robot_exploration)/config/robot_params.yaml" command = "load"/>
+    <node name="serial" pkg="rosserial_python" type="serial_node.py"/>
+    <node name="dead_reckoning" pkg="robot_exploration" type="dead_reckoning" />
+
+</launch>

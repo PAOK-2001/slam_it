@@ -26,6 +26,7 @@ class PathPlanner():
         self.ROWS, self.COLS = None, None
 
     def gridmap_callback(self, map: OccupancyGrid):
+         self.path_found = False
          self.grid_map = map # (0-100) meaning probability that there is obstacle, -1 if unknown
          self.np_grid = np.array(self.grid_map.data).reshape(self.grid_map.info.height, self.grid_map.info.width)
          self.ROWS = self.grid_map.info.height
