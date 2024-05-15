@@ -18,14 +18,14 @@ def astar(map, start, goal):
     gscore = {start: 0}
     fscore = {start: heuristic(start, goal)} # Get cost of initial node.
     frontier = []
-
+    counter = 0
     heapq.heappush(frontier, (fscore[start], start))
     
     while frontier:
         current = heapq.heappop(frontier)[1]
 
         # If has reached goal, return the path.
-        if current == goal:
+        if current == goal or counter >= MAX_ITER:
             data = []
             while current in came_from:
                 data.append(current)
@@ -55,7 +55,8 @@ def astar(map, start, goal):
                 came_from[neighbor] = current
                 gscore[neighbor] = tentative_g_score
                 fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-                heapq.heappush(frontier, (fscore[neighbor], neighbor)) 
+                heapq.heappush(frontier, (fscore[neighbor], neighbor))
+        counter+=1
 def d_star():
     raise NotImplemented
 

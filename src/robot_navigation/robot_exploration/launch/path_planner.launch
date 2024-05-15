@@ -1,5 +1,8 @@
 <launch>
+    <rosparam file = "$(find controllers)/config/control.yaml" command = "load"/>
+    <rosparam file = "$(find controllers)/config/robot_params.yaml" command = "load"/>
 
+    <node name="controller" pkg="controllers" type="position_control" output="screen"/>
     <node name="frontier_finder" pkg="robot_exploration" type="frontier_exploration.py" output="screen"/>
     <node name="global_planner" pkg="robot_exploration" type="path_planner.py" output="screen"/>
 

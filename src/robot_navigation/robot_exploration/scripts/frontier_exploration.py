@@ -7,16 +7,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped
+from utils.common import *
 
-# Constants
-UNKNOWN_TOKEN = -1
-OBSTACLE_TOKEN = 100
-CELL_PERIMETER = 4 # the actual permiter is 2 times this 
-
-# Normalization constants
-MAX_DISTANCE, MAX_COUNT = 3, 64 #Distance is in meters
-# Constants for weighing score
-P, A, G = (0.33,0.33,0.33)
 DEBUG = False
 
 class FrontierExplorer():
@@ -24,7 +16,7 @@ class FrontierExplorer():
         self.slam_namespace = "rtabmap"
         # Init nodes and define pubs and subs
         rospy.init_node('frontier_explorer', anonymous=True)
-        self.rate = rospy.Rate(1)
+        self.rate = rospy.Rate(0.1)
         rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
         self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
