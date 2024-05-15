@@ -1,0 +1,6 @@
+<launch>
+
+    <node name="frontier_finder" pkg="robot_exploration" type="frontier_exploration.py" output="screen"/>
+    <node name="global_planner" pkg="robot_exploration" type="path_planner.py" output="screen"/>
+
+</launch>

@@ -1,4 +1,5 @@
 import math
+import cv2
 import rospy 
 import numpy as np
 from nav_msgs.msg import OccupancyGrid, Path
@@ -6,16 +7,14 @@ from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped, PoseStamp
 import matplotlib.pyplot as plt
 from utils.planners import astar
 
+DEBUG = False
+
 class PathPlanner():
     def __init__(self):
         self.slam_namespace = "rtabmap"
         # Init nodes and define pubs and subs
         rospy.init_node('path_planner', anonymous=True)
         self.rate = rospy.Rate(1)
-        rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
-        rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
-        rospy.Subscriber("/frontier", PointStamped, self.goal_callback)
-        rospy.Subscriber(f"/goal", PointStamped, self.goal_callback)
         self.path_pub = rospy.Publisher('/path', Path, queue_size=2)
         self.path = None
         self. goal = None
@@ -24,13 +23,29 @@ class PathPlanner():
         self.robot_position = None
         self.path_found = False
         self.ROWS, self.COLS = None, None
+        self.kernel = np.ones((3, 3), np.uint8) 
+        # Callbacks
+        rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
+        rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
+        rospy.Subscriber("/frontier", PointStamped, self.goal_callback)
+        rospy.Subscriber(f"/goal", PointStamped, self.goal_callback)
 
     def gridmap_callback(self, map: OccupancyGrid):
          self.path_found = False
          self.grid_map = map # (0-100) meaning probability that there is obstacle, -1 if unknown
-         self.np_grid = np.array(self.grid_map.data).reshape(self.grid_map.info.height, self.grid_map.info.width)
+         np_grid = np.array(self.grid_map.data).reshape(self.grid_map.info.height, self.grid_map.info.width)
+         self.np_grid = self.get_inflated_map(np_grid)
          self.ROWS = self.grid_map.info.height
          self.COLS = self.grid_map.info.width
+
+    def get_inflated_map(self, map):
+        temp = map.astype(np.float32)
+        temp = cv2.dilate(temp, self.kernel, iterations=3)
+        if DEBUG:
+            cv2.imshow("MAP",cv2.cvtColor(temp, cv2.COLOR_GRAY2BGR))
+            cv2.waitKey(1)
+            print("Dilated map", temp.shape)
+        return temp
 
     def pose_callback(self, pose: PoseWithCovarianceStamped):
         self.robot_position = pose

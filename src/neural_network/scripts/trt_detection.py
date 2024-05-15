@@ -18,6 +18,7 @@ class ObjectDetector:
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/color/image_raw", Image, self.camera_callback)
         self.depth_sub = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.depth_callback)
+
         # Camera params
         self.cv_image = None
         self.depth_image = None
@@ -26,6 +27,8 @@ class ObjectDetector:
         self.confidence_thresh = 0.6
         self.class_dict = {0: 'Extinguisher', 1: 'Fire', 2: 'Person', 3: 'Pipe'}
         self.display_colors = [(128, 255, 128), (255, 128, 255), (85, 170, 255), (255, 255, 255)]
+        self.min_dist = 0
+        self.max_dist = 2
 
     def debug_show(self, detection_info, frame):
         local_frame = frame.copy()
@@ -42,8 +45,20 @@ class ObjectDetector:
         cv2.waitKey(1)
 
 
-    def publish_results(self, results):
-        pass
+    def publish_results(self, detection_info):
+        markers = MarkerArray()
+        detected_objects, bounding_boxes = detection_info
+
+        for (det_class, box) in zip(detected_objects, bounding_boxes):
+            marker = Marker()
+            class_id = int(det_class)
+            box = box.astype(int)
+            distance_to_obj = self.get_distance_to_pixel(box[0], box[1])
+            if distance_to_obj == self.min_dist or distance_to_obj > self.max_dist:
+                continue
+            else:
+                raise NotImplemented
+    
     
     def camera_callback(self, frame):
         self.cv_image = self.bridge.imgmsg_to_cv2(frame, "bgr8")
@@ -64,7 +79,7 @@ class ObjectDetector:
                 bounding_boxes = results.boxes.xywh.cpu().numpy()
 
                 detection_info = (detected_objects, bounding_boxes)
-
+                
                 if DEBUG:
                     self.debug_show(detection_info, self.cv_image)
             self.rate.sleep()
