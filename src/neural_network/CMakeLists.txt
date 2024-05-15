@@ -136,7 +136,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/neural_network_node.cpp)
-add_executable(Classifier src/Classifier.cpp)
+add_executable(landmark_detector src/Classifier.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -152,7 +152,7 @@ add_executable(Classifier src/Classifier.cpp)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(Classifier ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(landmark_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #############
 ## Install ##
 #############
@@ -207,3 +207,9 @@ target_link_libraries(Classifier ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+catkin_install_python(PROGRAMS
+  scripts/trt_detection.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

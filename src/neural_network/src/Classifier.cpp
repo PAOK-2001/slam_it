@@ -3,11 +3,9 @@
 #include <std_msgs/String.h>
 #include "cv_bridge/cv_bridge.h"
 #include <sensor_msgs/Image.h>
-#include <rocon_std_msgs/StringArray.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn/dnn.hpp>
-#define LIGHT_HEIGHT 140
-#define SIGN_HEIGHT 80
+
 
 class ObjectDetector {
     private:
@@ -23,16 +21,16 @@ class ObjectDetector {
         std::vector<std::string> _classes;
         std::vector<cv::Scalar> _display_colors;
         cv::Mat dash_cam;
+
         ObjectDetector(bool use_cuda) {
-            object_publisher = nh.advertise<rocon_std_msgs::StringArray>("/object_class", 1);
-            rate = new ros::Rate(4);
+            rate = new ros::Rate(10);
             img_subscriber = nh.subscribe("/camera/color/image_raw", 1, &ObjectDetector::receive_img, this);
             _input_width = 640;
             _input_height = 640;
             _threshold = {0.2, 0.4, 0.4}; // score, nms, confidence
             _classes = {"fire", "pipeline", "person", "extinguisher"};
-            _display_colors = {cv::Scalar(128, 255, 128), cv::Scalar(255, 128, 255), cv::Scalar(85, 170, 255), cv::Scalar(255, 255, 255), cv::Scalar(100, 100, 100), cv::Scalar(0, 0, 128), cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255), cv::Scalar(0, 255, 255), cv::Scalar(255, 0, 0)};
-            classifier = cv::dnn::readNetFromONNX("./nets/weights/best.onnx");
+            _display_colors = {cv::Scalar(128, 255, 128), cv::Scalar(255, 128, 255), cv::Scalar(85, 170, 255), cv::Scalar(255, 255, 255)};
+            classifier = cv::dnn::readNetFromONNX("/home/it/slam_it/src/neural_network/nets/train3/weights/best.onnx");
             if (use_cuda) {
                 std::cout << "Running classifier on CUDA" << std::endl;
                 classifier.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
@@ -72,7 +70,6 @@ class ObjectDetector {
             double x_factor = image_width / static_cast<double>(_input_width);
             double y_factor = image_height / static_cast<double>(_input_height);
             std::vector<std::string> objects;
-            rocon_std_msgs::StringArray msg;
 
             for (int r = 0; r < rows; ++r) {
                 float confidence = data[4];
@@ -113,13 +110,11 @@ class ObjectDetector {
 
             for (int i : indexes) {
                 result_class_ids.push_back(class_ids[i]);
-                object.push_back(_classes[class_ids[i]]);
+                objects.push_back(_classes[class_ids[i]]);
                 result_confidences.push_back(confidences[i]);
                 result_boxes.push_back(boxes[i]);
             }
 
-            msg.strings = onjects;
-            object_publisher.publish(msg);
             class_ids = result_class_ids;
             confidences = result_confidences;
             boxes = result_boxes;
@@ -127,7 +122,7 @@ class ObjectDetector {
 };
  
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "object_detector"); // Cambie el nombre del nodo
+    ros::init(argc, argv, "object_detector");
     ObjectDetector detector(true);
 
 
@@ -147,7 +142,7 @@ int main(int argc, char** argv) {
 
         detector.wrap_detection(frame_yolo, preds, class_ids, confidences, boxes);
 
-        /*for (size_t i = 0; i < class_ids.size(); ++i) {
+        for (size_t i = 0; i < class_ids.size(); ++i) {
             int class_id = class_ids[i];
             float confidence = confidences[i];
             cv::Rect box = boxes[i];
@@ -164,7 +159,7 @@ int main(int argc, char** argv) {
 
         if (cv::waitKey(1) == 'q') {
             break;
-        }*/
+        }
 
         detector.rate->sleep();
         ros::spinOnce();

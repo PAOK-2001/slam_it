@@ -1,0 +1,9 @@
+<launch>
+
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
+    <arg name="align_depth" value="true"/>
+  </include>
+
+  <node name="detection_node" pkg="neural_network" type="trt_detection.py" output="screen"/>
+
+</launch>
