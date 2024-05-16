@@ -6,6 +6,7 @@ from nav_msgs.msg import OccupancyGrid, Path
 from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped, PoseStamped
 import matplotlib.pyplot as plt
 from utils.planners import astar
+from utils.common import *
 
 DEBUG = False
 
@@ -14,7 +15,7 @@ class PathPlanner():
         self.slam_namespace = "rtabmap"
         # Init nodes and define pubs and subs
         rospy.init_node('path_planner', anonymous=True)
-        self.rate = rospy.Rate(0.1)
+        self.rate = rospy.Rate(10)
         self.path_pub = rospy.Publisher('/path', Path, queue_size=2)
         self.path = None
         self. goal = None
@@ -70,7 +71,7 @@ class PathPlanner():
     def build_path(self, route):
         path = Path()
         path.header.frame_id = self.goal.header.frame_id
-        for i in (range(0,len(route))):
+        for i in range(len(route) -1, -1, PATH_STEP):
             curr_pose = PoseStamped()
             curr_pose.header.frame_id = self.goal.header.frame_id 
             x, y = self.get_pose_from_cell(route[i])

@@ -44,7 +44,6 @@ class ObjectDetector:
         cv2.imshow("Landmark Detector", local_frame)
         cv2.waitKey(1)
 
-
     def publish_results(self, detection_info):
         markers = MarkerArray()
         detected_objects, bounding_boxes = detection_info
@@ -59,7 +58,7 @@ class ObjectDetector:
             else:
                 raise NotImplemented
     
-    
+
     def camera_callback(self, frame):
         self.cv_image = self.bridge.imgmsg_to_cv2(frame, "bgr8")
         

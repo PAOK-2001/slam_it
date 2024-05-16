@@ -47,43 +47,47 @@ int main(int argc, char *argv[]) {
     float robot_orientation = 0;
     double roll = 0, pitch = 0, yaw = 0;
 
-    float w_max = 8;
+    float w_max = 4;
     float v_max = (w_max*wheel_radius)*0.5;
-    float angularV_max = 1;
+    float angularV_max = 1.6;
 
     float integral_trr = 0;
     float integral_rr = 0;
 
-    cout << "Starting control loop\n";
-
     while(ros::ok){
         auto local_path = path.poses;
         for (auto coord : local_path){
-            robot_x = position.pose.pose.position.x;
-            robot_y = position.pose.pose.position.y;
-            tf::Quaternion quat;
-            tf::quaternionMsgToTF(position.pose.pose.orientation, quat);
-            tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-            robot_orientation = yaw;
             float desired_x = coord.pose.position.x;
             float desired_y = coord.pose.position.y;
-            float desired_angle;
+            float distance = 0, desired_angle = 0, angle_error = 0;
 
-            float distance = sqrt(pow(desired_y-robot_y,2)+pow(desired_x-robot_x,2));
+            distance = sqrt(pow(desired_y-robot_y,2)+pow(desired_x-robot_x,2));
+            cout << "Heading to: " << "x :" << desired_x << " y :" << desired_y << endl;
 
-            while (distance>0.02){
+            while (distance>0.08){
                 chrono::steady_clock::time_point t = chrono::steady_clock::now();
                 if(local_path != path.poses){
+                    cout << "Path changes, aborting control\n";
                     break;
                 }
-                //usleep(100000);
-                rate.sleep();
-                desired_angle = atan2(-(desired_y-robot_y),(desired_x -robot_x));
+
+                robot_x = position.pose.pose.position.x;
+                robot_y = position.pose.pose.position.y;
+                tf::Quaternion quat;
+                tf::quaternionMsgToTF(position.pose.pose.orientation, quat);
+                tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+                robot_orientation = yaw;
+
+                desired_angle = atan2((desired_y-robot_y),(desired_x -robot_x));
                 distance = sqrt(pow(desired_y-robot_y,2)+pow(desired_x-robot_x,2));
-                float angle_error = (robot_orientation - desired_angle);
+                
+                angle_error = (desired_angle - robot_orientation);
                 if(angle_error > M_PI) angle_error = angle_error - 2*M_PI;
                 else if(angle_error < - M_PI)angle_error = angle_error + 2*M_PI;
                 
+                cout << "Distance" << distance << endl;
+                cout << "Angle error" << angle_error << endl;
+
                 float angularVelocity = kpr*angle_error;
                 if(angularVelocity > angularV_max) angularVelocity = angularV_max;
                 else if (angularVelocity < -angularV_max) angularVelocity = -angularV_max;
@@ -91,6 +95,7 @@ int main(int argc, char *argv[]) {
                 float velocity = kpt*distance + kit*integral_trr; 
                 velocity = v_max * tanh(velocity);
                 integral_trr+=distance;
+
         
                 output.linear.x = velocity;
                 output.linear.y = 0;
@@ -103,12 +108,14 @@ int main(int argc, char *argv[]) {
                 controllerOutput.publish(output);
 
                 ros::spinOnce();
+                rate.sleep();
                 
             }
         }
         integral_trr = 0;
         ros::spinOnce();
         rate.sleep();
+        
         output.linear.x = 0;
         output.linear.y = 0;
         output.linear.z = 0;
