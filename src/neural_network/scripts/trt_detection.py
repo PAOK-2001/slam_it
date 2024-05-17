@@ -58,7 +58,6 @@ class ObjectDetector:
             else:
                 raise NotImplemented
     
-
     def camera_callback(self, frame):
         self.cv_image = self.bridge.imgmsg_to_cv2(frame, "bgr8")
         

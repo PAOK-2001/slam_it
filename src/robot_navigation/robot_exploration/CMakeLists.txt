@@ -174,6 +174,7 @@ target_link_libraries(dead_reckoning ${catkin_LIBRARIES})
 catkin_install_python(PROGRAMS
   scripts/frontier_exploration.py
   scripts/path_planner.py
+  scripts/map_processor.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

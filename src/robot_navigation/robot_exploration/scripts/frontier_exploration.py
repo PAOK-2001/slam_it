@@ -17,7 +17,7 @@ class FrontierExplorer():
         # Init nodes and define pubs and subs
         rospy.init_node('frontier_explorer', anonymous=True)
         self.rate = rospy.Rate(0.15)
-        rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
+        rospy.Subscriber(f"/inflated_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
         self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
         # Variables

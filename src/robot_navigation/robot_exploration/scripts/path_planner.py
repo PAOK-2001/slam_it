@@ -26,7 +26,7 @@ class PathPlanner():
         self.ROWS, self.COLS = None, None
         self.kernel = np.ones((3, 3), np.uint8) 
         # Callbacks
-        rospy.Subscriber(f"/{self.slam_namespace}/grid_map", OccupancyGrid, self.gridmap_callback)
+        rospy.Subscriber(f"/inflated_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
         rospy.Subscriber("/frontier", PointStamped, self.goal_callback)
         rospy.Subscriber(f"/goal", PointStamped, self.goal_callback)
@@ -41,7 +41,7 @@ class PathPlanner():
 
     def get_inflated_map(self, map):
         temp = map.astype(np.float32)
-        temp = cv2.dilate(temp, self.kernel, iterations=3)
+        temp = cv2.dilate(temp, self.kernel, iterations=4)
         if DEBUG:
             cv2.imshow("MAP",cv2.cvtColor(temp, cv2.COLOR_GRAY2BGR))
             cv2.waitKey(1)
