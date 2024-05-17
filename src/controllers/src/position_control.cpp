@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 
     float w_max = 4;
     float v_max = (w_max*wheel_radius)*0.5;
-    float angularV_max = 1.6;
+    float angularV_max = 2;
 
     float integral_trr = 0;
     float integral_rr = 0;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
             distance = sqrt(pow(desired_y-robot_y,2)+pow(desired_x-robot_x,2));
             cout << "Heading to: " << "x :" << desired_x << " y :" << desired_y << endl;
 
-            while (distance>0.08){
+            while (distance>0.08 && ros::ok){
                 chrono::steady_clock::time_point t = chrono::steady_clock::now();
                 if(local_path != path.poses){
                     cout << "Path changes, aborting control\n";

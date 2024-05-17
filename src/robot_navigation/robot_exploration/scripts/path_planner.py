@@ -35,18 +35,9 @@ class PathPlanner():
          self.path_found = False
          self.grid_map = map # (0-100) meaning probability that there is obstacle, -1 if unknown
          np_grid = np.array(self.grid_map.data).reshape(self.grid_map.info.height, self.grid_map.info.width)
-         self.np_grid = self.get_inflated_map(np_grid)
+         self.np_grid = np_grid
          self.ROWS = self.grid_map.info.height
          self.COLS = self.grid_map.info.width
-
-    def get_inflated_map(self, map):
-        temp = map.astype(np.float32)
-        temp = cv2.dilate(temp, self.kernel, iterations=4)
-        if DEBUG:
-            cv2.imshow("MAP",cv2.cvtColor(temp, cv2.COLOR_GRAY2BGR))
-            cv2.waitKey(1)
-            print("Dilated map", temp.shape)
-        return temp
 
     def pose_callback(self, pose: PoseWithCovarianceStamped):
         self.robot_position = pose

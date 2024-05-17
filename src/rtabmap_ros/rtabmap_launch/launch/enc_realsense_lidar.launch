@@ -14,6 +14,9 @@
    <!-- Lidar node launch -->
   <include file="$(find rplidar_ros)/launch/rplidar_a1.launch"/>
 
+  <!-- Launh frontier exploration nodes -->
+  <include file="$(find robot_exploration)/launch/path_planner.launch"/>
+  
   <!-- Launch odom node -->
   <include file="$(find robot_exploration)/launch/odom.launch"/>
 
