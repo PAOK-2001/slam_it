@@ -175,6 +175,8 @@ catkin_install_python(PROGRAMS
   scripts/frontier_exploration.py
   scripts/path_planner.py
   scripts/map_processor.py
+  scripts/odom_filter.py
+  scripts/robot_sim.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
