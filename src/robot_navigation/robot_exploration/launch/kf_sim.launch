@@ -4,6 +4,6 @@
 
     <include file="$(find robot_exploration)/launch/odom.launch"/>
     <node name="kalman_filer" pkg="robot_exploration" type="odom_filter.py" output="screen"/>
-    <node name="rqt_plot" pkg="rqt_plot" type="rqt_plot" respawn="false" output="screen" args="/odom/pose/pose/position/x /filtered_odom/pose/pose/position/x"/>
+    <node name="rqt_plot" pkg="rqt_plot" type="rqt_plot" respawn="false" output="screen" args="/rtabmap/localization_pose/pose/pose/position/x /filtered_pose/pose/pose/position/x"/>
 
 </launch>

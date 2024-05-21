@@ -5,9 +5,9 @@ import rospy.rosconsole
 import time
 from std_msgs.msg import Float32
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose, Twist
+from geometry_msgs.msg import PoseWithCovarianceStamped, Twist, Quaternion
 from utils.kalman_filter import KalmanFilter
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 KF_METHOD = 'kelly'
 # Filter Node
@@ -24,18 +24,18 @@ class FilterNode:
         self.h = 0
         self. phi = np.array([[_WHEELRADIUS/_WHEELBASE, -_WHEELRADIUS/_WHEELBASE]])
         # Subscriber and publisher
-        self.odom_sub =  rospy.Subscriber('odom', Odometry, self.odometry_callback)
-        self.wr_sub   =  rospy.Subscriber('wr', Float32, self.right_wheel_callback)
-        self.wl_sub   =  rospy.Subscriber('wl', Float32, self.left_wheel_callback)
-        self.speed_sub  =  rospy.Subscriber('cmd_vel', Twist, self.speed_callback)
-        self.filter_pub = rospy.Publisher('filtered_odom', Odometry, queue_size=10)
+        rospy.Subscriber(f"/rtabmap/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
+        rospy.Subscriber('wr', Float32, self.right_wheel_callback)
+        rospy.Subscriber('wl', Float32, self.left_wheel_callback)
+        rospy.Subscriber('cmd_vel', Twist, self.speed_callback)
+        self.filter_pub = rospy.Publisher('filtered_pose', PoseWithCovarianceStamped, queue_size=10)
         # Filter params
         self.obs_mat = np.eye(3)
         self.state_covar = np.eye(3)
         self.process_covar = np.eye(3)*0.005
         self.measurments_covar = np.eye(3)*100
         # Messages
-        self.original_odom =  None
+        self.original_pose =  None
         self.cmd_vel = None
         # State vectors
         self.pose = None
@@ -47,11 +47,11 @@ class FilterNode:
         system_settings = (self.measurments_covar, self.process_covar, self.state_covar, self.obs_mat)
         self.kf = KalmanFilter(system_settings, x_hat)
 
-    def odometry_callback(self, msg):
+    def pose_callback(self, msg):
         # Unpack message
-        self.original_odom = msg
+        self.original_pose = msg
         x = msg.pose.pose.position.x
-        y = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
         orientation_q = msg.pose.pose.orientation
         orientation_q = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
         _, _, yaw = euler_from_quaternion(orientation_q)
@@ -72,9 +72,28 @@ class FilterNode:
         self.speeds[0] = linear_vel
         self.speeds[1] = angular_vel
 
+    def get_pose_msg(self, robot_states):
+        pose_msg = PoseWithCovarianceStamped()
+        quat_msg = Quaternion()
+        
+        yaw = robot_states[2][0] #TODO: Convert angle to quaternion for finished odom OR puiblish as pose.
+        quat = quaternion_from_euler(0, 0, yaw)
+        quat_msg.x = quat[0]
+        quat_msg.y = quat[1]
+        quat_msg.z = quat[2]
+        quat_msg.w = quat[3]
+        
+        pose_msg.header = self.original_pose.header
+        pose_msg.pose.pose.position.x = robot_states[0][0]
+        pose_msg.pose.pose.position.y = robot_states[1][0]
+        pose_msg.pose.pose.orientation = quat_msg
+        
+        return pose_msg
+        
+
+
     def apply_kalman_filter(self):
         prev_time = time.time()
-        
         while not rospy.is_shutdown():
             if self.pose is not None  and self.wheel_speeds is not None:
                 dt = time.time()-prev_time
@@ -108,17 +127,9 @@ class FilterNode:
                 
                 x_hat = self.kf.predict(A = A, B = B, u = inputs)
 
-                # Implement Kalman filter for state estimation
-                odom_msg = Odometry()
-                odom_msg.child_frame_id = self.original_odom.child_frame_id
-                odom_msg.header = self.original_odom.header
-
-                odom_msg.pose.pose.position.x = x_hat[0][0]
-                odom_msg.pose.pose.position.y = x_hat[1][0]
-                odom_msg.pose.pose.orientation.w = x_hat[2][0] #TODO: Convert angle to quaternion for finished odom OR puiblish as pose.
-
+                pose_msg = self.get_pose_msg(x_hat)
+                self.filter_pub.publish(pose_msg)
                 prev_time = time.time() 
-                self.filter_pub.publish(odom_msg)
                 
 if __name__ == "__main__":
     filter = FilterNode()

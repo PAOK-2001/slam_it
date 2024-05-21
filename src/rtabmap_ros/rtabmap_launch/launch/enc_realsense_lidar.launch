@@ -3,7 +3,7 @@
   
   <!-- -0.007780 -->
   <!--                                                                                    x      y     z   roll pitch   yaw -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="laser_to_cam_link" args="-0.09 0 0.05150 0 3.14159 3.141592 /camera_link /laser" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="laser_to_cam_link" args="-0.09 0 0.05150 3.14159 0.0494 0 /camera_link /laser" />
 
   <arg name="rtabmap_args"      default="--delete_db_on_start"/>
   <!-- Initialize camera node -->
