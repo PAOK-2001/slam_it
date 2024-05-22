@@ -351,8 +351,14 @@
     <node name="rtabmap" pkg="rtabmap_slam" type="rtabmap" clear_params="$(arg clear_params)" output="$(arg output)" args="$(arg rtabmap_args)" launch-prefix="$(arg launch_prefix)">
       <param     if="$(arg stereo)" name="subscribe_depth"  type="bool" value="false"/>
       <param unless="$(arg stereo)" name="subscribe_depth"  type="bool" value="$(arg depth)"/>
-      <param name="subscribe_rgb"        type="bool"   value="$(arg subscribe_rgb)"/>
-      <param name="Rtabmap/DetectionRate"    type="int"    value="10" />
+      <param name="subscribe_rgb"         type="bool"   value="$(arg subscribe_rgb)"/>
+      <param name="Rtabmap/DetectionRate" type="int"    value="3" />
+      <!-- Map quality tunning -->
+      <param name="Kp/MaxDepth"   type="int"    value="4" />
+      <param name="Kp/MinDepth"   type="double"    value="0.22" />
+      <param name="Grid/NoiseFilteringRadius" value="0.05"/>
+      <param name="Grid/NoiseFilteringMinNeighbors" value="4"/>
+      <!-- Topic configs -->
       <param name="subscribe_rgbd"       type="bool"   value="$(eval subscribe_rgbd or use_odom_features)"/>
       <param name="subscribe_stereo"     type="bool"   value="$(arg stereo)"/>
       <param name="subscribe_scan"       type="bool"   value="$(arg subscribe_scan)"/>

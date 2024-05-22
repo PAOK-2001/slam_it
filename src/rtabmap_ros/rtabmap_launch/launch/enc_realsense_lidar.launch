@@ -3,12 +3,15 @@
   
   <!-- -0.007780 -->
   <!--                                                                                    x      y     z   roll pitch   yaw -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="laser_to_cam_link" args="-0.09 0 0.05150 3.14159 0.0494 0 /camera_link /laser" />
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="laser_to_cam_link" args="-0.09 0 0.05150 3.14159 -0 0 /camera_link /laser" /> -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_laser" args="0 0 0.13 3.14159 0 0 /base_link /laser" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_cam" args="0.073 0 0.047 0 -0.3368485 0 /base_link /camera_link" />
 
   <arg name="rtabmap_args"      default="--delete_db_on_start"/>
   <!-- Initialize camera node -->
   <include file="$(find realsense2_camera)/launch/rs_camera.launch" >
     <arg name="align_depth" value="true"/>
+    
   </include>
 
    <!-- Lidar node launch -->
@@ -29,12 +32,12 @@
       <arg name="subscribe_scan"    value="true"/>
       <arg name="scan_topic"        value="/scan"/>
       <arg name="odom_topic"        value="/odom"/>
+      <arg name="frame_id"          value="/base_link"/>
       <arg name="depth_topic"       value="/camera/aligned_depth_to_color/image_raw"/>
       <arg name="rgb_topic"         value="/camera/color/image_raw"/>
       <arg name="camera_info_topic" value="/camera/color/camera_info"/>
       <arg name="rgbd_sync"         value="false"/>
       <arg name="visual_odometry"   value="false"/>
-
 
       <arg name="gen_cloud"         value="true"/> 
       <arg name="approx_rgbd_sync"  value="false"/>
