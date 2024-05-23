@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(neural_network)
+project(landmark_detector)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -105,7 +105,7 @@ find_package(OpenCV REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES neural_network
+#  LIBRARIES landmark_detector
   CATKIN_DEPENDS cv_bridge roscpp rospy sensor_msgs cv_bridge
 #  DEPENDS system_lib
 )
@@ -124,7 +124,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/neural_network.cpp
+#   src/${PROJECT_NAME}/landmark_detector.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -135,8 +135,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/neural_network_node.cpp)
-add_executable(landmark_detector src/Classifier.cpp)
+# add_executable(${PROJECT_NAME}_node src/landmark_detector_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -152,7 +151,6 @@ add_executable(landmark_detector src/Classifier.cpp)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(landmark_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #############
 ## Install ##
 #############
@@ -200,7 +198,7 @@ target_link_libraries(landmark_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_neural_network.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_landmark_detector.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -211,5 +209,6 @@ target_link_libraries(landmark_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 catkin_install_python(PROGRAMS
   scripts/trt_detection.py
+  scripts/landmark_filter.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

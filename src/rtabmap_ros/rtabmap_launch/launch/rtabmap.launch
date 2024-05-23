@@ -356,8 +356,8 @@
       <!-- Map quality tunning -->
       <param name="Kp/MaxDepth"   type="int"    value="4" />
       <param name="Kp/MinDepth"   type="double"    value="0.22" />
-      <param name="Grid/NoiseFilteringRadius" value="0.05"/>
-      <param name="Grid/NoiseFilteringMinNeighbors" value="4"/>
+      <param name="Grid/NoiseFilteringRadius" value="0.03"/>
+      <param name="Grid/NoiseFilteringMinNeighbors" value="5"/>
       <!-- Topic configs -->
       <param name="subscribe_rgbd"       type="bool"   value="$(eval subscribe_rgbd or use_odom_features)"/>
       <param name="subscribe_stereo"     type="bool"   value="$(arg stereo)"/>
