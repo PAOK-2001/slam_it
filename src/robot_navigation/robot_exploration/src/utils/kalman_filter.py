@@ -29,8 +29,8 @@ class KalmanFilter():
          self.H) = system_settings
         
         dims = self.P.shape[1]
-        self.I = np.eye(dims)
-        self.x = np.zeros((dims, 1)) if initial_states is None else initial_states
+        self.I = np.eye(dims, dtype= np.float32)
+        self.x = np.zeros((dims, 1), dtype= np.float32) if initial_states is None else initial_states
 
     def predict(self, A = None, B = None, u = 0, dt = 0.01):
         if A is None:

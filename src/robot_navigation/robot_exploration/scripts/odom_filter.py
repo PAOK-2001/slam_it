@@ -24,17 +24,17 @@ class FilterNode:
         self.h = 0.001
         self. phi = np.array([[_WHEELRADIUS/_WHEELBASE, -_WHEELRADIUS/_WHEELBASE]])
         # Filter params
-        self.obs_mat = np.eye(3)
-        self.state_covar = np.eye(3)
-        self.process_covar = np.eye(3)*0.5
-        self.measurments_covar = np.eye(3)*0.05
+        self.obs_mat = np.eye(3, dtype= np.float32)
+        self.state_covar = np.eye(3, dtype= np.float32)
+        self.process_covar = np.eye(3, dtype= np.float32)*0.5
+        self.measurments_covar = np.eye(3, dtype= np.float32)*0.05
         # Messages
         self.original_pose =  None
         self.cmd_vel = None
         # State vectors
         self.pose = None
-        self.wheel_speeds = np.array([[0, 0]])
-        self.speeds = np.array([[0,0]])
+        self.wheel_speeds = np.array([[0.0, 0.0]], dtype= np.float32)
+        self.speeds = np.array([[0.0,0.0]], dtype= np.float32)
         # Build KF 
         x_hat = np.array([[0, 0, 0]]).T  # Initial States
         # Init kalman filter
@@ -90,14 +90,11 @@ class FilterNode:
         
         return pose_msg
         
-
-
     def apply_kalman_filter(self):
         prev_time = time.time()
         while not rospy.is_shutdown():
             if self.pose is not None  and self.wheel_speeds is not None:
                 dt = time.time()-prev_time
-                # breakpoint()
                 if KF_METHOD == 'kelly': 
                     v = self.r*(self.wheel_speeds[0][0] + self.wheel_speeds[0][1])/2
                     
@@ -126,10 +123,15 @@ class FilterNode:
                     B = np.array([[np.cos(theta),0],
                                  [np.sin(theta),0],
                                  [0, 1]])
-                    
                     B = np.dot(B, dim_mat)
 
                 x_hat = self.kf.predict(A = A, B = B, u = inputs, dt = dt)
+                robot_theta = x_hat[2][0]
+                if(robot_theta > math.pi):
+                    robot_theta = robot_theta - 2*math.pi
+                elif robot_theta < - math.pi: 
+                    robot_theta = robot_theta + 2*math.pi
+                x_hat[2][0] =robot_theta
                 print(x_hat)
                 self.pose = x_hat
                 pose_msg = self.get_pose_msg(x_hat)
