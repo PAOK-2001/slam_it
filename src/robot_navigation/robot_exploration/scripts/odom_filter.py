@@ -9,7 +9,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, Twist, Quaternion
 from utils.kalman_filter import KalmanFilter
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
-KF_METHOD = 'kelly'
+KF_METHOD = 'jacobian'
 # Filter Node
 class FilterNode:
     def __init__(self):
@@ -17,35 +17,35 @@ class FilterNode:
         rospy.init_node('filter_node')
         self.rate = rospy.Rate(100)
         # Robot params
-        _WHEELRADIUS = rospy.get_param("/wheel_base")
-        _WHEELBASE = rospy.get_param("/wheel_radius")
+        _WHEELRADIUS = rospy.get_param("/wheel_radius")
+        _WHEELBASE = rospy.get_param("/wheel_base")
         self.r = _WHEELRADIUS
         self.d = _WHEELBASE
-        self.h = 0
+        self.h = 0.001
         self. phi = np.array([[_WHEELRADIUS/_WHEELBASE, -_WHEELRADIUS/_WHEELBASE]])
+        # Filter params
+        self.obs_mat = np.eye(3)
+        self.state_covar = np.eye(3)
+        self.process_covar = np.eye(3)*0.5
+        self.measurments_covar = np.eye(3)*0.05
+        # Messages
+        self.original_pose =  None
+        self.cmd_vel = None
+        # State vectors
+        self.pose = None
+        self.wheel_speeds = np.array([[0, 0]])
+        self.speeds = np.array([[0,0]])
+        # Build KF 
+        x_hat = np.array([[0, 0, 0]]).T  # Initial States
+        # Init kalman filter
+        system_settings = (self.measurments_covar, self.process_covar, self.state_covar, self.obs_mat)
+        self.kf = KalmanFilter(system_settings, x_hat)
         # Subscriber and publisher
         rospy.Subscriber(f"/rtabmap/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
         rospy.Subscriber('wr', Float32, self.right_wheel_callback)
         rospy.Subscriber('wl', Float32, self.left_wheel_callback)
         rospy.Subscriber('cmd_vel', Twist, self.speed_callback)
         self.filter_pub = rospy.Publisher('filtered_pose', PoseWithCovarianceStamped, queue_size=10)
-        # Filter params
-        self.obs_mat = np.eye(3)
-        self.state_covar = np.eye(3)
-        self.process_covar = np.eye(3)*0.005
-        self.measurments_covar = np.eye(3)*100
-        # Messages
-        self.original_pose =  None
-        self.cmd_vel = None
-        # State vectors
-        self.pose = None
-        self.wheel_speeds = np.array([0, 0])
-        self.speeds = np.array([0,0])
-        # Build KF 
-        x_hat = np.array([[0, 0, 0]]).T  # Initial States
-        # Init kalman filter
-        system_settings = (self.measurments_covar, self.process_covar, self.state_covar, self.obs_mat)
-        self.kf = KalmanFilter(system_settings, x_hat)
 
     def pose_callback(self, msg):
         # Unpack message
@@ -61,22 +61,22 @@ class FilterNode:
         self.kf.update(self.pose)
 
     def right_wheel_callback(self, msg):
-        self.wheel_speeds[0] = msg.data
+        self.wheel_speeds[0][0] = msg.data
 
     def left_wheel_callback(self, msg):
-        self.wheel_speeds[1] = msg.data
+        self.wheel_speeds[0][1] = msg.data
 
     def speed_callback(self, msg):
         linear_vel = msg.linear.x
         angular_vel = msg.angular.z
-        self.speeds[0] = linear_vel
-        self.speeds[1] = angular_vel
+        self.speeds[0][0] = linear_vel
+        self.speeds[0][1] = angular_vel
 
     def get_pose_msg(self, robot_states):
         pose_msg = PoseWithCovarianceStamped()
         quat_msg = Quaternion()
         
-        yaw = robot_states[2][0] #TODO: Convert angle to quaternion for finished odom OR puiblish as pose.
+        yaw = robot_states[2][0] 
         quat = quaternion_from_euler(0, 0, yaw)
         quat_msg.x = quat[0]
         quat_msg.y = quat[1]
@@ -99,19 +99,19 @@ class FilterNode:
                 dt = time.time()-prev_time
                 # breakpoint()
                 if KF_METHOD == 'kelly': 
-                    v = self.r*(self.wheel_speeds[0] + self.wheel_speeds[1])/2
-                
-                else:
-                    v = self.speeds[0]
+                    v = self.r*(self.wheel_speeds[0][0] + self.wheel_speeds[0][1])/2
                     
-                theta = self.pose[2,0]
-                A = np.array([[1, 0, -v*math.sin(theta) * dt],
-                              [0, 1, v*math.cos(theta) * dt],
-                              [0, 0, 1]])
+                else:
+                    v = self.r*(self.wheel_speeds[0][0] + self.wheel_speeds[0][1])/2
+            
+                theta = self.pose[2][0]
+                A = np.array([[0, 0, 0],
+                              [0, 0, 0],
+                              [0, 0, 0]]) #TODO: add dt to system transition mat
 
                 if KF_METHOD == 'kelly':
-                    D = np.array([[(self.r/2)*np.cos(self.pose[2][0])-((self.h*self.r)/self.d)*np.sin(self.pose[2][0]), (self.r/2)*np.cos(self.pose[2][0])+((self.h*self.r)/self.d)*np.sin(self.pose[2][0])],
-                                [(self.r/2)*np.sin(self.pose[2][0])+((self.h*self.r)/self.d)*np.cos(self.pose[2][0]), (self.r/2)*np.sin(self.pose[2][0])-((self.h*self.r)/self.d)*np.cos(self.pose[2][0])]])
+                    D = np.array([[(self.r/2)*np.cos(theta)-((self.h*self.r)/self.d)*np.sin(theta), (self.r/2)*np.cos(theta)+((self.h*self.r)/self.d)*np.sin(theta)],
+                                [(self.r/2)*np.sin(theta)+((self.h*self.r)/self.d)*np.cos(theta), (self.r/2)*np.sin(theta)-((self.h*self.r)/self.d)*np.cos(theta)]])
                     
                     B = np.array([D[0],
                                   D[1],
@@ -120,16 +120,22 @@ class FilterNode:
                     inputs = self.wheel_speeds
                 
                 else:
-                    B = np.array([[np.cos(theta),np.sin(theta),0],
-                                 [0,0,1]]).T
+                    inputs = self.wheel_speeds.T
+                    dim_mat = np.array([[self.r/2, self.r/2],
+                                        [self.r/self.d, -self.r/self.d]])
+                    B = np.array([[np.cos(theta),0],
+                                 [np.sin(theta),0],
+                                 [0, 1]])
                     
-                    inputs = self.speeds
-                
-                x_hat = self.kf.predict(A = A, B = B, u = inputs)
+                    B = np.dot(B, dim_mat)
 
+                x_hat = self.kf.predict(A = A, B = B, u = inputs, dt = dt)
+                print(x_hat)
+                self.pose = x_hat
                 pose_msg = self.get_pose_msg(x_hat)
                 self.filter_pub.publish(pose_msg)
                 prev_time = time.time() 
+                self.rate.sleep()
                 
 if __name__ == "__main__":
     filter = FilterNode()
