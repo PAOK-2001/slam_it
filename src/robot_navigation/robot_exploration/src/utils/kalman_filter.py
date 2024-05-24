@@ -32,14 +32,10 @@ class KalmanFilter():
         self.I = np.eye(dims, dtype= np.float32)
         self.x = np.zeros((dims, 1), dtype= np.float32) if initial_states is None else initial_states
 
-    def predict(self, A = None, B = None, u = 0, dt = 0.01):
-        if A is None:
-            A = np.zeros_like(self.x)
-        if B is None:
-            B = np.zeros_like(self.x)
+    def predict(self, A = None,  B = None, u = 0, dt = 0.01):
         # Predict states based on systems dynamics
         x_dot = np.dot(A, self.x) + np.dot(B,u)
-        self.x =self.x + x_dot*dt
+        self.x = self.x + x_dot*dt
         # Updated covariance by running covariance through system
         self.P = np.dot(np.dot(A,self.P),A.T) + self.Q
         return self.x
@@ -56,3 +52,4 @@ class KalmanFilter():
         self.x = self.x + np.dot(K, error)
         # Update the state covariance
         self.P = np.dot(np.dot(self.I - np.dot(K, self.H), self.P), (self.I - np.dot(K, self.H)).T) + np.dot(np.dot(K, self.R), K.T)
+        return self.x

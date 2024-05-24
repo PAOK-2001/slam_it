@@ -1,0 +1,6 @@
+<launch>
+
+  <node name="detection_node" pkg="landmark_detector" type="trt_detection.py" output="screen"/>
+  <node name="landmark_filter" pkg="landmark_detector" type="landmark_filter.py" output="screen"/>
+
+</launch>
