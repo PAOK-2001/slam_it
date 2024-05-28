@@ -38,7 +38,7 @@ class MapProcessor:
     def get_inflated_map(self, map):
         temp = map.astype(np.float32)
         temp = np.where(temp>1,temp,-1)
-        temp = cv2.dilate(temp, self.kernel, iterations=4)
+        temp = cv2.dilate(temp, self.kernel, iterations=5)
         if DEBUG:
             cv2.imshow("MAP", cv2.cvtColor(temp, cv2.COLOR_GRAY2BGR))
             cv2.waitKey(1)

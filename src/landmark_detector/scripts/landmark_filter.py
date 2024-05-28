@@ -7,7 +7,7 @@ class ObjectFilter:
         rospy.init_node('landmark_filter')
         self.marker_pub = rospy.Publisher("/filtered_landmarks", MarkerArray, queue_size=10)
         rospy.Subscriber("/landmarks", MarkerArray, self.marker_array_callback)
-        self.min_distance = 0.5
+        self.min_distance = 1.0
         self.markers = MarkerArray()
 
     def calculate_distance(self, marker1, marker2):

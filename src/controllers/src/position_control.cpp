@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     ros::init(argc, argv, "controller");
     ros::NodeHandle handler;    
     ros::Subscriber systemFeedback = handler.subscribe("/path", 10, receive_path);
-    ros::Subscriber positionSub = handler.subscribe("/rtabmap/localization_pose", 10, receive_position);
+    ros::Subscriber positionSub = handler.subscribe("/filtered_pose", 10, receive_position);
 
     ros::Publisher controllerOutput = handler.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
 
@@ -47,9 +47,9 @@ int main(int argc, char *argv[]) {
     float robot_orientation = 0;
     double roll = 0, pitch = 0, yaw = 0;
 
-    float w_max = 4;
+    float w_max = 3;
     float v_max = (w_max*wheel_radius)*0.5;
-    float angularV_max = 2;
+    float angularV_max = 2.75;
 
     float integral_trr = 0;
     float integral_rr = 0;
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
             float distance = 0, desired_angle = 0, angle_error = 0;
 
             distance = sqrt(pow(desired_y-robot_y,2)+pow(desired_x-robot_x,2));
-            cout << "Heading to: " << "x :" << desired_x << " y :" << desired_y << endl;
+            // cout << "Heading to: " << "x :" << desired_x << " y :" << desired_y << endl;
 
             while (distance>0.08 && ros::ok){
                 chrono::steady_clock::time_point t = chrono::steady_clock::now();
@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
                 if(angle_error > M_PI) angle_error = angle_error - 2*M_PI;
                 else if(angle_error < - M_PI)angle_error = angle_error + 2*M_PI;
                 
-                cout << "Distance" << distance << endl;
-                cout << "Angle error" << angle_error << endl;
+                // cout << "Distance" << distance << endl;
+                // cout << "Angle error" << angle_error << endl;
 
                 float angularVelocity = kpr*angle_error;
                 if(angularVelocity > angularV_max) angularVelocity = angularV_max;

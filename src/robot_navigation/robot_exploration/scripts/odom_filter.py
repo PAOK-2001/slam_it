@@ -26,10 +26,17 @@ class FilterNode:
         # Filter params
         self.obs_mat = np.eye(3, dtype= np.float32)
         self.state_covar = np.eye(3, dtype= np.float32)
-        self.process_covar = np.eye(3, dtype= np.float32)*0.1 # Q
-        self.measurments_covar = np.eye(3, dtype= np.float32)*0.07 # R
+
+        self.process_covar = np.array([[0.1, 0, 0],
+                                       [0, 0.1, 0],
+                                       [0, 0, 0.7]], dtype= np.float32) # Q
+
+        self.measurments_covar = np.array([[0.07, 0 ,0],
+                                           [0, 0.07, 0],
+                                           [0, 0, 0.007]], dtype= np.float32)
         # Messages
         self.original_pose =  None
+        self.prev_pose = None
         self.cmd_vel = None
         # State vectors
         self.pose = None
@@ -57,8 +64,7 @@ class FilterNode:
         theta = yaw
         # Pose to numpy
         self.pose = np.array([[x, y, theta]]).T
-        self.x_hat  = self.kf.update(self.pose)
-
+        
     def right_wheel_callback(self, msg):
         self.wheel_speeds[0][0] = msg.data
 
@@ -127,13 +133,24 @@ class FilterNode:
 
                 self.x_hat  = self.kf.predict(A = A, B = B, u = inputs, dt = dt)
                 robot_theta = self.x_hat [2][0]
+
                 if(robot_theta > math.pi):
                     robot_theta = robot_theta - 2*math.pi
+
                 elif robot_theta < - math.pi: 
                     robot_theta = robot_theta + 2*math.pi
 
                 self.x_hat [2][0] =robot_theta
-                pose_msg = self.get_pose_msg(self.x_hat )
+
+                if self.original_pose != self.prev_pose:
+                    self.prev_pose = self.original_pose
+                    self.x_hat = self.kf.update(self.pose)
+
+                if abs(self.x_hat[2][0] - self.pose[2][0]) > np.pi/4: 
+                    self.x_hat = self.pose
+                    
+
+                pose_msg = self.get_pose_msg(self.x_hat)
                 self.filter_pub.publish(pose_msg)
                 prev_time = time.time() 
                 self.rate.sleep()

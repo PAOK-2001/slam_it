@@ -23,6 +23,9 @@
   <!-- Launch odom node -->
   <include file="$(find robot_exploration)/launch/odom.launch"/>
 
+  <!-- Launch detection node -->
+  <include file ="$(find landmark_detector)/launch/detection.launch" />
+
   <!-- Initialize RTABMAP -->
   <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
       <arg name="rtabmap_args"          value="$(arg rtabmap_args)"/>

@@ -3,6 +3,7 @@
 
 import rospy
 import math
+import time
 import numpy as np
 from matplotlib import pyplot as plt
 from nav_msgs.msg import OccupancyGrid
@@ -18,7 +19,7 @@ class FrontierExplorer():
         rospy.init_node('frontier_explorer', anonymous=True)
         self.rate = rospy.Rate(0.15)
         rospy.Subscriber(f"/inflated_map", OccupancyGrid, self.gridmap_callback)
-        rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
+        rospy.Subscriber(f"/filtered_pose", PoseWithCovarianceStamped , self.pose_callback)
         self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
         # Variables
         self.grid_map = None

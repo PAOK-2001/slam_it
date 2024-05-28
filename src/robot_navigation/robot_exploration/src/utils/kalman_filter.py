@@ -46,7 +46,7 @@ class KalmanFilter():
         # Update error covariance
         E = self.R + np.dot(self.H, np.dot(self.P, self.H.T))
         # Estimate Kalman Gain
-        E_inv = np.linalg.inv(E)
+        E_inv = np.linalg.pinv(E)
         K = np.dot(np.dot(self.P, self.H.T), E_inv)
         # Update the state
         self.x = self.x + np.dot(K, error)

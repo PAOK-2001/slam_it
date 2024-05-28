@@ -4,7 +4,7 @@ OBSTACLE_TOKEN = 100
 CELL_PERIMETER = 4 # the actual permiter is 2 times this 
 
 # Constants for weighing score
-P, A, G = (0.3,0.8,0.45)
+P, A, G = (0.3,0.8,0.2)
 
 
 PATH_STEP = -4

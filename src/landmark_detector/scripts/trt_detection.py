@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rospy
+import math
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -46,7 +47,7 @@ class ObjectDetector:
         self.robot_position = None
         self.camera_k = None #fx,fy,cx,cy
         self.max_dist = 2
-
+        self.min_dist = 0.1
         # TF attributes
         self.tfBuffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -84,9 +85,9 @@ class ObjectDetector:
         marker.pose.orientation.y = 0
         marker.pose.orientation.z = 0
         marker.pose.orientation.w = 1
-        marker.scale.x = 0.2
-        marker.scale.y = 0.2
-        marker.scale.z = 0.2
+        marker.scale.x = 0.4
+        marker.scale.y = 0.4
+        marker.scale.z = 0.4
         
         marker.color.a = 1.0
         marker.color.r = color[2]/255.0
@@ -102,6 +103,15 @@ class ObjectDetector:
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             rospy.logwarn("Failed to transform point to map")
         return None
+    
+    def is_valid_point(self, coords):
+        x,y,z = coords
+        distance = math.sqrt(x**2 + y**2 + z**2)
+        if distance < self.min_dist or distance > self.max_dist:
+            return False
+        else:
+            return True
+        
             
     def publish_results(self, detection_info):
         markers = MarkerArray()
@@ -120,14 +130,13 @@ class ObjectDetector:
             pos = self.get_pos_from_pixel(box[0], box[1])
             if pos is not None:
                 x,y,z = pos
-                if x <= self.max_dist:
-                    marker = self.create_marker(id= local_id, 
-                                                x=x, 
-                                                y=y, 
-                                                z=z, 
-                                                ns= class_id, 
-                                                color= color)
-                    markers.markers.append(marker)
+                marker = self.create_marker(id= local_id, 
+                                            x=x, 
+                                            y=y, 
+                                            z=z, 
+                                            ns= class_id, 
+                                            color= color)
+                markers.markers.append(marker)
         self.marker_pub.publish(markers)
     
     def camera_callback(self, frame):
@@ -164,6 +173,11 @@ class ObjectDetector:
         pos_x = depth_array[y,x]/1000
         pos_y = (-x + self.camera_k[2]) * pos_x / self.camera_k[0]
         pos_z = (-y + self.camera_k[3]) * pos_x / self.camera_k[1]
+        
+        coords = (pos_x, pos_y, pos_z)
+        if not self.is_valid_point(coords):
+            return None
+        
         # Construct point
         point = PointStamped()
         point.header.frame_id = "camera_link"

@@ -27,7 +27,7 @@ class PathPlanner():
         self.kernel = np.ones((3, 3), np.uint8) 
         # Callbacks
         rospy.Subscriber(f"/inflated_map", OccupancyGrid, self.gridmap_callback)
-        rospy.Subscriber(f"/{self.slam_namespace}/localization_pose", PoseWithCovarianceStamped , self.pose_callback)
+        rospy.Subscriber(f"/filtered_pose", PoseWithCovarianceStamped , self.pose_callback)
         rospy.Subscriber("/frontier", PointStamped, self.goal_callback)
         rospy.Subscriber(f"/goal", PointStamped, self.goal_callback)
 
