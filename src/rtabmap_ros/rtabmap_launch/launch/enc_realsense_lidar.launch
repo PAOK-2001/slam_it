@@ -17,6 +17,9 @@
    <!-- Lidar node launch -->
   <include file="$(find rplidar_ros)/launch/rplidar_a1.launch"/>
 
+  <!--  Coverage calculator -->
+  <node name="coverage_calc" pkg="robot_exploration" type="map_coverage_calculator.py" output="screen"/>
+
   <!-- Launh frontier exploration nodes -->
   <include file="$(find robot_exploration)/launch/path_planner.launch"/>
   

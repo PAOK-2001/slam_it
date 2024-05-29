@@ -393,6 +393,7 @@
       <param name="gen_depth_fill_holes_size"  type="int"    value="$(arg gen_depth_fill_holes_size)" />
       <param name="gen_depth_fill_iterations"  type="int"    value="$(arg gen_depth_fill_iterations)" />
       <param name="gen_depth_fill_holes_error" type="double" value="$(arg gen_depth_fill_holes_error)" />
+    
 
       <remap from="rgb/image"       to="$(arg rgb_topic_relay)"/>
       <remap from="depth/image"     to="$(arg depth_topic_relay)"/>
@@ -418,6 +419,9 @@
       <remap from="fiducial_transforms"    to="$(arg fiducial_topic)"/>
       <remap from="odom"                   to="$(arg odom_topic)"/>
       <remap from="imu"                    to="$(arg imu_topic)"/>
+      <param name="map_empty_ray_tracing"  type="bool" value="True"/>
+      <param name="map_always_update"      type="bool" value="True"/>
+
 
       <!-- localization mode -->
       <param     if="$(arg localization)" name="Mem/IncrementalMemory" type="string" value="false"/>

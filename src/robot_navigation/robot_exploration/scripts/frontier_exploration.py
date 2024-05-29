@@ -7,10 +7,13 @@ import time
 import numpy as np
 from matplotlib import pyplot as plt
 from nav_msgs.msg import OccupancyGrid
+from std_msgs.msg import Float32, Bool
 from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped
 from utils.common import *
 
 DEBUG = False
+STOP = False
+COV_THRESH = 0.80
 
 class FrontierExplorer():
     def __init__(self):
@@ -18,8 +21,9 @@ class FrontierExplorer():
         # Init nodes and define pubs and subs
         rospy.init_node('frontier_explorer', anonymous=True)
         self.rate = rospy.Rate(0.15)
-        rospy.Subscriber(f"/inflated_map", OccupancyGrid, self.gridmap_callback)
-        rospy.Subscriber(f"/filtered_pose", PoseWithCovarianceStamped , self.pose_callback)
+        rospy.Subscriber("/inflated_map", OccupancyGrid, self.gridmap_callback)
+        rospy.Subscriber("/filtered_pose", PoseWithCovarianceStamped , self.pose_callback)
+        rospy.Subscriber("/rel_coverage", Float32, self.coverage_check)
         self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
         # Variables
         self.grid_map = None
@@ -30,6 +34,19 @@ class FrontierExplorer():
 
     def pose_callback(self, pose: PoseWithCovarianceStamped):
         self.robot_position = pose
+
+    def coverage_check(self, coverage: Float32):
+        if coverage.data >= COV_THRESH:
+            STOP = True
+            rospy.loginfo("""
+############################
+    EXPLORATION COMPLETE
+    RETURNING TO INITIAL 
+          POSITION
+############################
+""")
+        else:
+            STOP = False
 
     def calculate_obstacle_density(self, cell, grid, norm = True):
         row, col = cell[0], cell[1]
@@ -77,7 +94,7 @@ class FrontierExplorer():
         # Frontier cells are boundary cells between the explored and unexplored areas of the map. They cannot be obstacles
         frontier_mask = np.logical_and(visited_mask, obstacle_mask)
         frontier_cells = np.argwhere(frontier_mask)
-        rospy.loginfo(f"Found {len(frontier_cells)} frontier cells")
+        #rospy.loginfo(f"Found {len(frontier_cells)} frontier cells")
         return frontier_cells, np_grid
 
     def evaluate_frontiers(self, frontiers, grid):
@@ -120,9 +137,18 @@ class FrontierExplorer():
     def explore(self):
         while not rospy.is_shutdown():
             if self.grid_map is not None and self.robot_position is not None:
+                if STOP:
+                    goal_pose = PointStamped()
+        
+                    goal_pose.header.frame_id = self.grid_map.header.frame_id
+                    goal_pose.point.x = 0
+                    goal_pose.point.y = 0
+                    pass 
+                
                 frontier_cells, np_grid = self.identify_frontiers()
                 scores = self.evaluate_frontiers(frontier_cells, np_grid)
                 goal = self.select_goal(frontier_cells, scores)
+                
                 self.frontier_pub.publish(goal)
                 if(DEBUG):
                     self.debug_plot(np_grid, frontier_cells)
