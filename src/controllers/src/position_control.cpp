@@ -47,9 +47,9 @@ int main(int argc, char *argv[]) {
     float robot_orientation = 0;
     double roll = 0, pitch = 0, yaw = 0;
 
-    float w_max = 3;
+    float w_max = 2;
     float v_max = (w_max*wheel_radius)*0.5;
-    float angularV_max = 2.75;
+    float angularV_max = 2;
 
     float integral_trr = 0;
     float integral_rr = 0;

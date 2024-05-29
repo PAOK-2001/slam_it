@@ -420,7 +420,7 @@
       <remap from="odom"                   to="$(arg odom_topic)"/>
       <remap from="imu"                    to="$(arg imu_topic)"/>
       <param name="map_empty_ray_tracing"  type="bool" value="True"/>
-      <param name="map_always_update"      type="bool" value="True"/>
+      <param name="map_always_update"      type="bool" value="False"/>
 
 
       <!-- localization mode -->

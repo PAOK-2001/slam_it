@@ -17,7 +17,7 @@ class ObjectDetector:
     def __init__(self, engine_path):
         self.slam_namespace = "rtabmap"
         rospy.init_node('landmark_detector')
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(3)
         self.bridge = CvBridge()
         self.marker_pub = rospy.Publisher("/landmarks", MarkerArray, queue_size=10 )
         self.image_sub = rospy.Subscriber("/camera/color/image_raw", Image, self.camera_callback)

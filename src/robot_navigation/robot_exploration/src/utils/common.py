@@ -1,10 +1,11 @@
 # Constants
 UNKNOWN_TOKEN = -1
+KNOWN_TOKEN = 0
 OBSTACLE_TOKEN = 100
 CELL_PERIMETER = 4 # the actual permiter is 2 times this 
 
 # Constants for weighing score
-P, A, G = (0.3,0.8,0.2)
+P, A, G = (0.57,0.65,0.4)
 
 
 PATH_STEP = -4

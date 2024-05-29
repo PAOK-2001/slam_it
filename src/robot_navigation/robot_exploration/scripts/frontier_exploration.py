@@ -4,6 +4,7 @@
 import rospy
 import math
 import time
+import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from nav_msgs.msg import OccupancyGrid
@@ -14,21 +15,26 @@ from utils.common import *
 DEBUG = False
 STOP = False
 COV_THRESH = 0.80
-
+FRONTIER_TIMEOUT = 15
+RATE = 0.15
 class FrontierExplorer():
     def __init__(self):
         self.slam_namespace = "rtabmap"
         # Init nodes and define pubs and subs
         rospy.init_node('frontier_explorer', anonymous=True)
-        self.rate = rospy.Rate(0.15)
+        self.rate = rospy.Rate(RATE)
         rospy.Subscriber("/inflated_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber("/filtered_pose", PoseWithCovarianceStamped , self.pose_callback)
         rospy.Subscriber("/rel_coverage", Float32, self.coverage_check)
         self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
         # Variables
+        self.kernel = np.ones((3, 3), np.uint8)
         self.grid_map = None
         self.robot_position = None
-    
+        self.blacklist = []
+        self.counter  = 0
+        self.prev_frontier = np.array([])
+
     def gridmap_callback(self, map: OccupancyGrid):
          self.grid_map = map # (0-100) meaning probability that there is obstacle, -1 if unknown
 
@@ -39,12 +45,12 @@ class FrontierExplorer():
         if coverage.data >= COV_THRESH:
             STOP = True
             rospy.loginfo("""
-############################
-    EXPLORATION COMPLETE
-    RETURNING TO INITIAL 
-          POSITION
-############################
-""")
+                            ############################
+                                EXPLORATION COMPLETE
+                                RETURNING TO INITIAL 
+                                    POSITION
+                            ############################
+                            """)
         else:
             STOP = False
 
@@ -88,14 +94,17 @@ class FrontierExplorer():
         
         np_grid = np.array(self.grid_map.data).reshape(self.grid_map.info.height, self.grid_map.info.width)
         # Mask out explored and obstacle cells sections
-        visited_mask = np_grid != UNKNOWN_TOKEN
-        obstacle_mask = np_grid != OBSTACLE_TOKEN
-
         # Frontier cells are boundary cells between the explored and unexplored areas of the map. They cannot be obstacles
-        frontier_mask = np.logical_and(visited_mask, obstacle_mask)
-        frontier_cells = np.argwhere(frontier_mask)
-        #rospy.loginfo(f"Found {len(frontier_cells)} frontier cells")
-        return frontier_cells, np_grid
+        temp = np_grid.astype(np.float32)
+        known_space = np.where(temp==0,1.0,0.0)
+        unknown_space = np.where(temp==-1,1.0,0.0)
+        dilated_known_space = cv2.dilate(known_space, self.kernel, iterations=1)
+        borders_cv = cv2.bitwise_and(dilated_known_space, unknown_space)
+        frontier_cells = np.argwhere(borders_cv==1)
+
+        frontier_cells = frontier_cells.tolist()
+        filtered_frontier_cells = np.array([cell for cell in frontier_cells if cell not in self.blacklist])
+        return filtered_frontier_cells, np_grid
 
     def evaluate_frontiers(self, frontiers, grid):
         if self.grid_map is  None:
@@ -124,7 +133,7 @@ class FrontierExplorer():
         goal_pose.point.x = goal_cell[1] * self.grid_map.info.resolution + self.grid_map.info.origin.position.x
         goal_pose.point.y = goal_cell[0] * self.grid_map.info.resolution + self.grid_map.info.origin.position.y
 
-        return goal_pose
+        return goal_pose, goal_cell
     
     def debug_plot(self, np_grid, frontier_cells):
         plt.imshow(np_grid, cmap='gray_r', origin='lower')
@@ -133,6 +142,15 @@ class FrontierExplorer():
         plt.scatter(frontier_cells[:, 1], frontier_cells[:, 0], c='r', marker='o', label='Frontiers')
         plt.legend()
         plt.show()
+
+    def blacklist_zone(self, cell):
+        neighbors = [(0,1),(0,-1),(1,0),(-1,0),(1,1),(1,-1),(-1,1),(-1,-1),
+                     (0,2),(0,-2),(2,0),(-2,0),(2,1),(2,-1),(-2,1),(1,2), (-1,2), (1,-2), (-1,-2)] 
+        
+        self.blacklist.append(cell.tolist())
+        for i, j in neighbors:
+            neighbor = [cell[0] + i, cell[1] + j]
+            self.blacklist.append(neighbor) 
 
     def explore(self):
         while not rospy.is_shutdown():
@@ -143,17 +161,29 @@ class FrontierExplorer():
                     goal_pose.header.frame_id = self.grid_map.header.frame_id
                     goal_pose.point.x = 0
                     goal_pose.point.y = 0
+
+                    self.frontier_pub.publish(goal)
                     pass 
                 
                 frontier_cells, np_grid = self.identify_frontiers()
                 scores = self.evaluate_frontiers(frontier_cells, np_grid)
-                goal = self.select_goal(frontier_cells, scores)
-                
+                goal, goal_cell = self.select_goal(frontier_cells, scores)
+
+
+                if goal_cell.all() == self.prev_frontier.all():
+                    if self.counter * (1/RATE) >  FRONTIER_TIMEOUT:
+                        rospy.loginfo("Blacklisted zone")
+                        self.blacklist_zone(goal_cell)
+                    self.counter+=1
+
+                else: 
+                    self.counter = 0
+
+                self.prev_frontier = goal_cell
                 self.frontier_pub.publish(goal)
                 if(DEBUG):
                     self.debug_plot(np_grid, frontier_cells)
 
-                # breakpoint()
             self.rate.sleep()
                 
 if __name__ == "__main__":

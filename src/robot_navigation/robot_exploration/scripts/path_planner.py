@@ -15,7 +15,7 @@ class PathPlanner():
         self.slam_namespace = "rtabmap"
         # Init nodes and define pubs and subs
         rospy.init_node('path_planner', anonymous=True)
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(0.5)
         self.path_pub = rospy.Publisher('/path', Path, queue_size=2)
         self.path = None
         self. goal = None
