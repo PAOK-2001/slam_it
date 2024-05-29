@@ -13,8 +13,7 @@ from geometry_msgs.msg import PointStamped, PoseWithCovarianceStamped
 from utils.common import *
 
 DEBUG = False
-STOP = False
-COV_THRESH = 0.80
+COV_THRESH = 90.0
 FRONTIER_TIMEOUT = 15
 RATE = 0.15
 class FrontierExplorer():
@@ -25,7 +24,8 @@ class FrontierExplorer():
         self.rate = rospy.Rate(RATE)
         rospy.Subscriber("/inflated_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber("/filtered_pose", PoseWithCovarianceStamped , self.pose_callback)
-        rospy.Subscriber("/rel_coverage", Float32, self.coverage_check)
+        rospy.Subscriber("/coverage", Float32, self.coverage_check)
+        rospy.Subscriber("/stop", Bool, self.stop_callback)
         self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
         # Variables
         self.kernel = np.ones((3, 3), np.uint8)
@@ -34,6 +34,7 @@ class FrontierExplorer():
         self.blacklist = []
         self.counter  = 0
         self.prev_frontier = np.array([])
+        self.stop = False
 
     def gridmap_callback(self, map: OccupancyGrid):
          self.grid_map = map # (0-100) meaning probability that there is obstacle, -1 if unknown
@@ -41,9 +42,13 @@ class FrontierExplorer():
     def pose_callback(self, pose: PoseWithCovarianceStamped):
         self.robot_position = pose
 
+    def stop_callback(self, msg):
+        if msg.data == True:
+            self.stop = True
+
     def coverage_check(self, coverage: Float32):
         if coverage.data >= COV_THRESH:
-            STOP = True
+            self.stop = True
             rospy.loginfo("""
                             ############################
                                 EXPLORATION COMPLETE
@@ -52,7 +57,7 @@ class FrontierExplorer():
                             ############################
                             """)
         else:
-            STOP = False
+            self.stop = False
 
     def calculate_obstacle_density(self, cell, grid, norm = True):
         row, col = cell[0], cell[1]
@@ -155,7 +160,7 @@ class FrontierExplorer():
     def explore(self):
         while not rospy.is_shutdown():
             if self.grid_map is not None and self.robot_position is not None:
-                if STOP:
+                if self.stop:
                     goal_pose = PointStamped()
         
                     goal_pose.header.frame_id = self.grid_map.header.frame_id
