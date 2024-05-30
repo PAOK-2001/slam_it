@@ -177,6 +177,7 @@ catkin_install_python(PROGRAMS
   scripts/map_processor.py
   scripts/odom_filter.py
   scripts/map_coverage_calculator.py
+  scripts/emergency_stop.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

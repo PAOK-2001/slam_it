@@ -24,7 +24,6 @@ class FrontierExplorer():
         self.rate = rospy.Rate(RATE)
         rospy.Subscriber("/inflated_map", OccupancyGrid, self.gridmap_callback)
         rospy.Subscriber("/filtered_pose", PoseWithCovarianceStamped , self.pose_callback)
-        rospy.Subscriber("/coverage", Float32, self.coverage_check)
         rospy.Subscriber("/stop", Bool, self.stop_callback)
         self.frontier_pub = rospy.Publisher('/frontier', PointStamped, queue_size=2)
         # Variables
@@ -44,20 +43,8 @@ class FrontierExplorer():
 
     def stop_callback(self, msg):
         if msg.data == True:
+            print("Got stop")
             self.stop = True
-
-    def coverage_check(self, coverage: Float32):
-        if coverage.data >= COV_THRESH:
-            self.stop = True
-            rospy.loginfo("""
-                            ############################
-                                EXPLORATION COMPLETE
-                                RETURNING TO INITIAL 
-                                    POSITION
-                            ############################
-                            """)
-        else:
-            self.stop = False
 
     def calculate_obstacle_density(self, cell, grid, norm = True):
         row, col = cell[0], cell[1]
@@ -167,27 +154,27 @@ class FrontierExplorer():
                     goal_pose.point.x = 0
                     goal_pose.point.y = 0
 
-                    self.frontier_pub.publish(goal)
-                    pass 
-                
-                frontier_cells, np_grid = self.identify_frontiers()
-                scores = self.evaluate_frontiers(frontier_cells, np_grid)
-                goal, goal_cell = self.select_goal(frontier_cells, scores)
-
-
-                if goal_cell.all() == self.prev_frontier.all():
-                    if self.counter * (1/RATE) >  FRONTIER_TIMEOUT:
-                        rospy.loginfo("Blacklisted zone")
-                        self.blacklist_zone(goal_cell)
-                    self.counter+=1
+                    self.frontier_pub.publish(goal_pose)
 
                 else: 
-                    self.counter = 0
+                    frontier_cells, np_grid = self.identify_frontiers()
+                    scores = self.evaluate_frontiers(frontier_cells, np_grid)
+                    goal, goal_cell = self.select_goal(frontier_cells, scores)
 
-                self.prev_frontier = goal_cell
-                self.frontier_pub.publish(goal)
-                if(DEBUG):
-                    self.debug_plot(np_grid, frontier_cells)
+
+                    if goal_cell.all() == self.prev_frontier.all():
+                        if self.counter * (1/RATE) >  FRONTIER_TIMEOUT:
+                            rospy.loginfo("Blacklisted zone")
+                            self.blacklist_zone(goal_cell)
+                        self.counter+=1
+
+                    else: 
+                        self.counter = 0
+
+                    self.prev_frontier = goal_cell
+                    self.frontier_pub.publish(goal)
+                    if(DEBUG):
+                        self.debug_plot(np_grid, frontier_cells)
 
             self.rate.sleep()
                 
