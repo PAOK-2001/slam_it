@@ -116,6 +116,10 @@ class FrontierExplorer():
         return scores
 
     def select_goal(self, frontier_cells, scores):
+        if len(scores) == 0:
+            self.stop = True
+            return None, None, False
+
         best_index = np.argmax(scores)
         goal_cell = frontier_cells[best_index]
 
@@ -125,7 +129,7 @@ class FrontierExplorer():
         goal_pose.point.x = goal_cell[1] * self.grid_map.info.resolution + self.grid_map.info.origin.position.x
         goal_pose.point.y = goal_cell[0] * self.grid_map.info.resolution + self.grid_map.info.origin.position.y
 
-        return goal_pose, goal_cell
+        return goal_pose, goal_cell, True
     
     def debug_plot(self, np_grid, frontier_cells):
         plt.imshow(np_grid, cmap='gray_r', origin='lower')
@@ -159,22 +163,23 @@ class FrontierExplorer():
                 else: 
                     frontier_cells, np_grid = self.identify_frontiers()
                     scores = self.evaluate_frontiers(frontier_cells, np_grid)
-                    goal, goal_cell = self.select_goal(frontier_cells, scores)
+                    goal, goal_cell, valid = self.select_goal(frontier_cells, scores)
+                    if valid == False:
+                        pass
+                    else:
+                        if goal_cell.all() == self.prev_frontier.all():
+                            if self.counter * (1/RATE) >  FRONTIER_TIMEOUT:
+                                rospy.loginfo("Blacklisted zone")
+                                self.blacklist_zone(goal_cell)
+                            self.counter+=1
 
+                        else: 
+                            self.counter = 0
 
-                    if goal_cell.all() == self.prev_frontier.all():
-                        if self.counter * (1/RATE) >  FRONTIER_TIMEOUT:
-                            rospy.loginfo("Blacklisted zone")
-                            self.blacklist_zone(goal_cell)
-                        self.counter+=1
-
-                    else: 
-                        self.counter = 0
-
-                    self.prev_frontier = goal_cell
-                    self.frontier_pub.publish(goal)
-                    if(DEBUG):
-                        self.debug_plot(np_grid, frontier_cells)
+                        self.prev_frontier = goal_cell
+                        self.frontier_pub.publish(goal)
+                        if(DEBUG):
+                            self.debug_plot(np_grid, frontier_cells)
 
             self.rate.sleep()
                 

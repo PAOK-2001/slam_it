@@ -21,6 +21,6 @@ class EmergencyNode(object):
 if __name__ == '__main__':
     print("--OVERRIDER CONSOLE--")
     print(" ")
-    print("Press any key to toggle arm drone")
+    print("Press any key to toggle exploration")
     security_node = EmergencyNode()
     security_node.keyboard_checker()
